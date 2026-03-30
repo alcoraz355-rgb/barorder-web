@@ -424,6 +424,13 @@ async function handleModificar() {
 async function handleBorrar() {
   if (!confirm('¿Seguro que quieres borrar tu pedido?')) return;
 
+  // Primero actualizar estado para disparar realtime en supervisión
+  await sb.from('pedidos')
+    .update({ estado: 'modificando' })
+    .eq('miembro_id', state.miembro.id)
+    .eq('mesa_id', state.mesa.id);
+
+  // Luego borrar
   await sb.from('pedidos').delete()
     .eq('miembro_id', state.miembro.id)
     .eq('mesa_id', state.mesa.id);
@@ -524,5 +531,12 @@ function loadSession(mesaCodigo) {
     return s;
   } catch { return null; }
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+  $('btn-volver-pedido')?.addEventListener('click', () => {
+    renderOrderScreen();
+    showScreen('order');
+  });
+});
 
 init();
