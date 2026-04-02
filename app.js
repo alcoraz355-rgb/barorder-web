@@ -665,7 +665,12 @@ function openChat() {
 
   modal.onclick = (e) => { if (e.target === modal) closeChat(); };
   $('btn-chat-close').onclick = closeChat;
-  $('btn-chat-send').onclick = handleChatSend;
+
+  const sendBtn = $('btn-chat-send');
+  sendBtn.onclick = null;
+  sendBtn.ontouchend = (e) => { e.preventDefault(); handleChatSend(); };
+  sendBtn.onclick = handleChatSend;
+
   const input = $('chat-input');
   input.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChatSend(); } };
   input.focus();
