@@ -695,7 +695,7 @@ function appendMessage(msg) {
   if (isTemp) row.style.opacity = '0.5';
   row.innerHTML = `<span class="chat-msg-name${isMe ? ' me' : ''}">${escapeHtml(msg.nombre)}</span><span class="chat-msg-text">${escapeHtml(msg.texto)}</span><span class="chat-msg-time">${time}</span>`;
   container.appendChild(row);
-  container.scrollTop = container.scrollHeight;
+  setTimeout(() => { container.scrollTop = container.scrollHeight; }, 50);
 }
 
 function escapeHtml(str) {
