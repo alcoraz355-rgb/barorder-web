@@ -459,6 +459,10 @@ button {
   padding: 16px 20px;
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  z-index: 10;
 }
 .chat-title { color: var(--gold); font-size: 17px; font-weight: 800; }
 .chat-close-btn {
