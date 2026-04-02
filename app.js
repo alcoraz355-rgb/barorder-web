@@ -610,7 +610,7 @@ const CHAT_KEY = (mesaId) => `barorder_chat_lastread_${mesaId}`;
 async function initChat() {
   if (!state.mesa || !state.miembro) return;
 
-  // Comprobar no leídos
+  // Cargar mensajes existentes
   const lastReadRaw = localStorage.getItem(CHAT_KEY(state.mesa.id));
   const lastReadTime = lastReadRaw ? new Date(lastReadRaw) : new Date(0);
   const { data: msgs } = await sb.from('mensajes').select('*').eq('mesa_id', state.mesa.id).order('created_at', { ascending: true });
@@ -618,32 +618,39 @@ async function initChat() {
   const hayNuevos = state.chatMensajes.some((m) => m.miembro_id !== state.miembro.id && new Date(m.created_at) > lastReadTime);
   setUnread(hayNuevos);
 
-  // Suscripción en tiempo real
+  // Mostrar FAB
+  const fab = $('chat-fab');
+  if (fab) { fab.style.display = 'flex'; fab.onclick = openChat; }
+
+  // Suscripción: solo mensajes de OTROS (los propios se muestran por optimista)
   if (state.chatChannel) state.chatChannel.unsubscribe();
   state.chatChannel = sb.channel(`chat_web_${state.mesa.id}_${Date.now()}`)
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes', filter: `mesa_id=eq.${state.mesa.id}` }, (payload) => {
       const nuevo = payload.new;
+      if (nuevo.miembro_id === state.miembro.id) return; // propio, ya está por optimista
       if (state.chatMensajes.find((m) => m.id === nuevo.id)) return;
       state.chatMensajes.push(nuevo);
-      if (nuevo.miembro_id !== state.miembro.id) setUnread(true);
-      const modal = $('chat-modal');
-      if (modal.style.display !== 'none') appendMessage(nuevo);
+      setUnread(true);
+      if ($('chat-modal').style.display !== 'none') appendMessage(nuevo);
     })
     .subscribe();
 }
 
 function setUnread(val) {
   state.hasUnread = val;
-  document.querySelectorAll('.chat-fab-btn').forEach((btn) => {
-    btn.classList.toggle('unread', val);
-  });
+  const fab = $('chat-fab');
+  if (fab) fab.classList.toggle('unread', val);
 }
 
 function openChat() {
   const modal = $('chat-modal');
   modal.style.display = 'flex';
 
-  // Renderizar mensajes
+  // Título
+  const titleEl = modal.querySelector('.chat-title');
+  if (titleEl) titleEl.textContent = `💬  Chat — ${state.mesa.nombre || state.mesa.codigo}`;
+
+  // Renderizar todos los mensajes
   const container = $('chat-messages');
   container.innerHTML = '';
   if (state.chatMensajes.length === 0) {
@@ -653,7 +660,6 @@ function openChat() {
   }
   container.scrollTop = container.scrollHeight;
 
-  // Marcar como leído
   setUnread(false);
   localStorage.setItem(CHAT_KEY(state.mesa.id), new Date().toISOString());
 
@@ -671,23 +677,19 @@ function closeChat() {
 
 function appendMessage(msg) {
   const container = $('chat-messages');
-  const emptyEl = container.querySelector('.chat-empty');
-  if (emptyEl) emptyEl.remove();
+  container.querySelector('.chat-empty')?.remove();
 
   const isMe = msg.miembro_id === state.miembro.id;
   const d = new Date(msg.created_at);
-  const time = d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0');
+  const time = d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
+  const isTemp = String(msg.id).startsWith('tmp_');
 
-  const wrap = document.createElement('div');
-  wrap.className = 'chat-msg-wrap' + (isMe ? ' me' : '');
-  wrap.innerHTML = `
-    <div class="chat-msg-name">${escapeHtml(msg.nombre)}</div>
-    <div class="chat-bubble${isMe ? ' me' : ''}">
-      <span class="chat-msg-text">${escapeHtml(msg.texto)}</span>
-      <span class="chat-msg-time">${time}</span>
-    </div>
-  `;
-  container.appendChild(wrap);
+  const row = document.createElement('div');
+  row.className = 'chat-msg-row';
+  row.setAttribute('data-id', msg.id);
+  if (isTemp) row.style.opacity = '0.5';
+  row.innerHTML = `<span class="chat-msg-name${isMe ? ' me' : ''}">${escapeHtml(msg.nombre)}</span><span class="chat-msg-text">${escapeHtml(msg.texto)}</span><span class="chat-msg-time">${time}</span>`;
+  container.appendChild(row);
   container.scrollTop = container.scrollHeight;
 }
 
@@ -699,24 +701,21 @@ async function handleChatSend() {
   const input = $('chat-input');
   const texto = input.value.trim();
   if (!texto) return;
-
   input.value = '';
-  const btn = $('btn-chat-send');
-  btn.disabled = true;
+
+  // Optimista: mostrar al instante
+  const tempMsg = { id: `tmp_${Date.now()}`, mesa_id: state.mesa.id, miembro_id: state.miembro.id, nombre: state.nombre, texto, created_at: new Date().toISOString() };
+  state.chatMensajes.push(tempMsg);
+  appendMessage(tempMsg);
 
   try {
-    await sb.from('mensajes').insert({
-      mesa_id: state.mesa.id,
-      miembro_id: state.miembro.id,
-      nombre: state.nombre,
-      texto,
-    });
+    await sb.from('mensajes').insert({ mesa_id: state.mesa.id, miembro_id: state.miembro.id, nombre: state.nombre, texto });
   } catch (e) {
-    console.error(e);
-  } finally {
-    btn.disabled = false;
-    input.focus();
+    state.chatMensajes = state.chatMensajes.filter((m) => m.id !== tempMsg.id);
+    $('chat-messages').querySelector(`[data-id="${tempMsg.id}"]`)?.remove();
+    alert('Error al enviar: ' + e.message);
   }
+  input.focus();
 }
 
 // ─── Sesión ───────────────────────────────────────────────────────────────────

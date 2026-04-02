@@ -38,10 +38,7 @@
   <div id="screen-order" class="screen">
     <div class="top-bar">
       <div class="logo-title"><span>🍸</span><h1>BarOrder</h1></div>
-      <div class="top-bar-right">
-        <div class="mesa-badge" id="order-mesa-code">—</div>
-        <button class="chat-fab-btn" id="btn-chat-order">💬</button>
-      </div>
+      <div class="mesa-badge" id="order-mesa-code">—</div>
     </div>
 
     <div class="category-scroll" id="cat-filter"></div>
@@ -56,10 +53,7 @@
   <div id="screen-confirmed" class="screen">
     <div class="top-bar">
       <div class="logo-title"><span>🍸</span><h1>BarOrder</h1></div>
-      <div class="top-bar-right">
-        <div class="mesa-badge" id="conf-mesa-code">—</div>
-        <button class="chat-fab-btn" id="btn-chat-confirmed">💬</button>
-      </div>
+      <div class="mesa-badge" id="conf-mesa-code">—</div>
     </div>
 
     <div class="confirmed-banner">
@@ -99,6 +93,9 @@
       <p class="closed-sub">El admin ha cerrado esta mesa. ¡Hasta la próxima! 🍻</p>
     </div>
   </div>
+
+  <!-- ── FAB Chat (siempre visible tras unirse) ───────────────── -->
+  <button id="chat-fab" class="chat-fab" style="display:none">💬</button>
 
   <!-- ── MODAL: Chat ───────────────────────────────────────────── -->
   <div id="chat-modal" class="modal-overlay" style="display:none">
