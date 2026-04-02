@@ -444,11 +444,13 @@ button {
 .chat-sheet {
   width: 100%; max-width: 480px;
   height: 78dvh;
+  max-height: 78dvh;
   background: var(--bg);
   border-radius: 20px 20px 0 0;
   border-top: 1px solid var(--border);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 .chat-header {
   display: flex;
@@ -518,11 +520,12 @@ button {
 
 .chat-input-row {
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   gap: 10px;
   padding: 12px 14px 24px;
   border-top: 1px solid var(--border);
   flex-shrink: 0;
+  height: 70px;
 }
 #chat-input {
   flex: 1;
@@ -535,7 +538,9 @@ button {
   font-family: inherit;
   resize: none;
   outline: none;
-  max-height: 100px;
+  height: 42px;
+  max-height: 42px;
+  overflow-y: auto;
   -webkit-appearance: none;
 }
 #chat-input:focus { border-color: var(--gold); }
