@@ -6,56 +6,87 @@
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-const CATEGORIES = ['Todos', 'Cerveza', 'Vino', 'Cóctel', 'Spirits', 'Sin alcohol'];
+const CATEGORIES = ['Todos', 'Cerveza', 'Vino', 'Cóctel', 'Spirits', 'Sin alcohol', 'Aperitivos'];
 
 const DRINKS = [
   { id: 'c1', name: 'Cerveza',      emoji: '🍺', category: 'Cerveza' },
   { id: 'c2', name: 'Cerveza sin',  emoji: '🍺', category: 'Cerveza' },
   { id: 'c3', name: 'Clara',        emoji: '🍋', category: 'Cerveza' },
   { id: 'c4', name: 'Jarra',        emoji: '🍻', category: 'Cerveza' },
-  { id: 'v1', name: 'Vino tinto',   emoji: '🍷', category: 'Vino' },
-  { id: 'v2', name: 'Vino blanco',  emoji: '🥂', category: 'Vino' },
-  { id: 'v3', name: 'Vino rosado',  emoji: '🍾', category: 'Vino' },
-  { id: 'v4', name: 'Sangría',      emoji: '🍷', category: 'Vino' },
-  { id: 'v5', name: 'Cava',         emoji: '🥂', category: 'Vino' },
-  { id: 'k1', name: 'Mojito',       emoji: '🍃', category: 'Cóctel' },
-  { id: 'k2', name: 'Gin tonic',    emoji: '🫧', category: 'Cóctel' },
-  { id: 'k3', name: 'Daiquiri',     emoji: '🍓', category: 'Cóctel' },
-  { id: 'k4', name: 'Margarita',    emoji: '🍋', category: 'Cóctel' },
-  { id: 'k5', name: 'Piña colada',  emoji: '🍍', category: 'Cóctel' },
-  { id: 'k6', name: 'Spritz',       emoji: '🍊', category: 'Cóctel' },
-  { id: 'k7', name: 'Negroni',      emoji: '🍸', category: 'Cóctel' },
-  { id: 'k8', name: 'Cuba libre',   emoji: '🥃', category: 'Cóctel' },
-  { id: 's1', name: 'Whisky',   emoji: '🥃', category: 'Spirits', isSpirit: true },
-  { id: 's2', name: 'Ron',      emoji: '🥃', category: 'Spirits', isSpirit: true },
-  { id: 's3', name: 'Vodka',    emoji: '🍸', category: 'Spirits', isSpirit: true },
-  { id: 's4', name: 'Ginebra',  emoji: '🌿', category: 'Spirits', isSpirit: true },
-  { id: 's5', name: 'Tequila',  emoji: '🥃', category: 'Spirits', isSpirit: true },
-  { id: 's6', name: 'Brandy',   emoji: '🥃', category: 'Spirits', isSpirit: true },
-  { id: 's7', name: 'Chupito',  emoji: '🥃', category: 'Spirits' },
-  { id: 'n1',  name: 'Agua',       emoji: '💧', category: 'Sin alcohol' },
-  { id: 'n2',  name: 'Cola',       emoji: '🥤', category: 'Sin alcohol' },
-  { id: 'n3',  name: 'Cola light', emoji: '🥤', category: 'Sin alcohol' },
-  { id: 'n4',  name: 'Naranja',    emoji: '🍊', category: 'Sin alcohol' },
-  { id: 'n5',  name: 'Limón',      emoji: '🍋', category: 'Sin alcohol' },
-  { id: 'n6',  name: 'Té frío',    emoji: '🧋', category: 'Sin alcohol' },
-  { id: 'n7',  name: 'Limonada',   emoji: '🫧', category: 'Sin alcohol' },
-  { id: 'n8',  name: 'Energética', emoji: '⚡', category: 'Sin alcohol' },
-  { id: 'n9',  name: 'Zumo',       emoji: '🍊', category: 'Sin alcohol' },
-  { id: 'n10', name: 'Café',       emoji: '☕', category: 'Sin alcohol' },
-  { id: 'n11', name: 'Té',         emoji: '🍵', category: 'Sin alcohol' },
-  { id: 'n12', name: 'Tónica',     emoji: '🫧', category: 'Sin alcohol' },
+
+  { id: 'v1', name: 'Vino tinto', emoji: '🍷', category: 'Vino',
+    regions: ['Rioja', 'Ribera del Duero', 'Cariñena', 'Priorat', 'Toro'],
+    agings: ['Joven', 'Crianza', 'Reserva', 'Gran Reserva'] },
+  { id: 'v2', name: 'Vino blanco', emoji: '🥂', category: 'Vino',
+    regions: ['Albariño', 'Verdejo', 'Rueda', 'Chardonnay'],
+    agings: ['Joven', 'Crianza'] },
+  { id: 'v3', name: 'Vino rosado', emoji: '🍾', category: 'Vino',
+    regions: ['Navarra', 'Rioja', 'Cigales'],
+    agings: ['Joven', 'Crianza'] },
+  { id: 'v4', name: 'Sangría', emoji: '🍷', category: 'Vino' },
+  { id: 'v5', name: 'Cava',    emoji: '🥂', category: 'Vino' },
+
+  { id: 'k1', name: 'Mojito',      emoji: '🍃', category: 'Cóctel' },
+  { id: 'k2', name: 'Gin tonic',   emoji: '🫧', category: 'Cóctel' },
+  { id: 'k3', name: 'Daiquiri',    emoji: '🍓', category: 'Cóctel' },
+  { id: 'k4', name: 'Margarita',   emoji: '🍋', category: 'Cóctel' },
+  { id: 'k5', name: 'Piña colada', emoji: '🍍', category: 'Cóctel' },
+  { id: 'k6', name: 'Spritz',      emoji: '🍊', category: 'Cóctel' },
+  { id: 'k7', name: 'Negroni',     emoji: '🍸', category: 'Cóctel' },
+  { id: 'k8', name: 'Cuba libre',  emoji: '🥃', category: 'Cóctel' },
+
+  { id: 's1', name: 'Whisky', emoji: '🥃', category: 'Spirits', isSpirit: true,
+    brands: ['Bourbon', 'Escocés', 'Irlandés', 'Japonés', 'Americano'],
+    mixers: ['Solo', 'Con cola', 'Con cola zero', 'Con agua con gas'] },
+  { id: 's2', name: 'Ron', emoji: '🥃', category: 'Spirits', isSpirit: true,
+    brands: ['Blanco', 'Añejo', 'Oscuro', 'Spiced'],
+    mixers: ['Solo', 'Con cola', 'Con cola zero', 'Con naranja'] },
+  { id: 's3', name: 'Vodka', emoji: '🍸', category: 'Spirits', isSpirit: true,
+    brands: ['Absolut', 'Smirnoff', 'Grey Goose', 'Belvedere', 'Otro'],
+    mixers: ['Solo', 'Con tónica', 'Con naranja', 'Con lima'] },
+  { id: 's4', name: 'Ginebra', emoji: '🌿', category: 'Spirits', isSpirit: true,
+    brands: ['Tanqueray', 'Bombay Sapphire', 'Hendricks', 'Beefeater', 'Otro'],
+    mixers: ['Solo', 'Con tónica premium', 'Con tónica normal'] },
+  { id: 's5', name: 'Tequila', emoji: '🥃', category: 'Spirits', isSpirit: true,
+    brands: ['Blanco', 'Reposado', 'Añejo', 'Gold'],
+    mixers: ['Solo', 'Con lima', 'Con naranja'] },
+  { id: 's6', name: 'Brandy', emoji: '🥃', category: 'Spirits', isSpirit: true,
+    brands: ['Torres 10', 'Torres 20', 'Cardenal Mendoza', 'Lepanto', 'Veterano'],
+    mixers: ['Solo', 'Con cola'] },
+  { id: 's7', name: 'Chupito', emoji: '🥃', category: 'Spirits' },
+
+  { id: 'n1',  name: 'Agua',        emoji: '💧', category: 'Sin alcohol' },
+  { id: 'n2',  name: 'Cola',        emoji: '🥤', category: 'Sin alcohol' },
+  { id: 'n3',  name: 'Cola light',  emoji: '🥤', category: 'Sin alcohol' },
+  { id: 'n4',  name: 'Naranja',     emoji: '🍊', category: 'Sin alcohol' },
+  { id: 'n5',  name: 'Limón',       emoji: '🍋', category: 'Sin alcohol' },
+  { id: 'n6',  name: 'Té frío',     emoji: '🧋', category: 'Sin alcohol' },
+  { id: 'n7',  name: 'Limonada',    emoji: '🫧', category: 'Sin alcohol' },
+  { id: 'n8',  name: 'Energética',  emoji: '⚡', category: 'Sin alcohol' },
+  { id: 'n9',  name: 'Zumo',        emoji: '🍊', category: 'Sin alcohol' },
+  { id: 'n10', name: 'Café',        emoji: '☕', category: 'Sin alcohol' },
+  { id: 'n11', name: 'Té',          emoji: '🍵', category: 'Sin alcohol' },
+  { id: 'n12', name: 'Tónica',      emoji: '🫧', category: 'Sin alcohol' },
+
+  { id: 'ap1', name: 'Patatas fritas',   emoji: '🍟', category: 'Aperitivos' },
+  { id: 'ap2', name: 'Olivas',           emoji: '🫒', category: 'Aperitivos' },
+  { id: 'ap3', name: 'Pepinillos',       emoji: '🥒', category: 'Aperitivos' },
+  { id: 'ap4', name: 'Revuelto',         emoji: '🍳', category: 'Aperitivos' },
+  { id: 'ap5', name: 'Gambas rebozadas', emoji: '🍤', category: 'Aperitivos' },
+  { id: 'ap6', name: 'Calamares',        emoji: '🦑', category: 'Aperitivos' },
+  { id: 'ap7', name: 'Tostadas',         emoji: '🍞', category: 'Aperitivos' },
+  { id: 'ap8', name: 'Tapas',            emoji: '🍽️', category: 'Aperitivos' },
 ];
 
 const state = {
-  mesa:       null,
-  miembro:    null,
-  nombre:     null,
-  quantities: {},      // { baseId: number }
-  brandCodes: {},      // { baseId: string[] } — un código de 2 letras por unidad (solo spirits)
-  customDrinks: [],
+  mesa:             null,
+  miembro:          null,
+  nombre:           null,
+  quantities:       {},   // { baseId: number }
+  brandSelections:  {},   // { baseId: string[] } — una selección por unidad
+  customDrinks:     [],
   selectedCategory: 'Todos',
-  channel:    null,
+  channel:          null,
 };
 
 const SESSION_KEY = 'barorder_web_session';
@@ -69,6 +100,68 @@ function showScreen(name) {
 
 function getAllDrinks() {
   return [...DRINKS, ...state.customDrinks];
+}
+
+// ─── Modal de selección de marca/región ───────────────────────────────────────
+function openBrandModal(drink, onSelect) {
+  const modal = $('brand-modal');
+  const step1Options = drink.brands || drink.regions || [];
+  const step2Options = drink.mixers || drink.agings || [];
+
+  let step = 1;
+  let step1Value = null;
+
+  function renderStep() {
+    const options = step === 1 ? step1Options : step2Options;
+    const label = step === 1
+      ? (drink.brands ? 'Elige el tipo' : 'Elige la región')
+      : (drink.mixers ? 'Elige el refresco' : 'Elige la crianza');
+
+    $('modal-drink-title').textContent = `${drink.emoji}  ${drink.name}`;
+    $('modal-label').textContent = label;
+
+    const backEl = $('modal-back');
+    if (step === 2) {
+      backEl.style.display = 'flex';
+      $('modal-step1-value').textContent = step1Value;
+      backEl.onclick = () => { step = 1; step1Value = null; renderStep(); };
+    } else {
+      backEl.style.display = 'none';
+    }
+
+    const optionsEl = $('modal-options');
+    optionsEl.innerHTML = '';
+    options.forEach((opt) => {
+      const btn = document.createElement('button');
+      btn.className = 'modal-option';
+      btn.innerHTML = `<span>${opt}</span><span class="modal-option-arrow">›</span>`;
+      btn.onclick = () => {
+        if (step === 1 && step2Options.length > 0) {
+          step1Value = opt;
+          step = 2;
+          renderStep();
+        } else {
+          const sep = drink.mixers ? ' + ' : ' ';
+          const selection = step === 1 ? opt : `${step1Value}${sep}${opt}`;
+          closeModal();
+          onSelect(selection);
+        }
+      };
+      optionsEl.appendChild(btn);
+    });
+  }
+
+  function closeModal() {
+    modal.style.display = 'none';
+    modal.onclick = null;
+    $('modal-cancel').onclick = null;
+  }
+
+  $('modal-cancel').onclick = closeModal;
+  modal.onclick = (e) => { if (e.target === modal) closeModal(); };
+
+  renderStep();
+  modal.style.display = 'flex';
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
@@ -135,17 +228,14 @@ async function cargarPedidosExistentes() {
     .eq('estado', 'confirmado');
 
   state.quantities = {};
-  state.brandCodes = {};
+  state.brandSelections = {};
 
   (pedidos || []).forEach((p) => {
     const baseId = p.drink_id.split('|')[0];
     state.quantities[baseId] = (state.quantities[baseId] || 0) + p.cantidad;
-    const code = p.marca || 'AB';
-    const drink = getAllDrinks().find((d) => d.id === baseId);
-    if (drink?.isSpirit) {
-      if (!state.brandCodes[baseId]) state.brandCodes[baseId] = [];
-      for (let i = 0; i < p.cantidad; i++) state.brandCodes[baseId].push(code);
-    }
+    const sel = p.marca || '';
+    if (!state.brandSelections[baseId]) state.brandSelections[baseId] = [];
+    for (let i = 0; i < p.cantidad; i++) state.brandSelections[baseId].push(sel);
   });
 }
 
@@ -228,6 +318,8 @@ function renderDrinks() {
 function makeDrinkCard(drink) {
   const qty = state.quantities[drink.id] || 0;
   const active = qty > 0;
+  const selections = state.brandSelections[drink.id] || [];
+  const hasOptions = drink.brands || drink.regions;
 
   const card = document.createElement('div');
   card.className = 'drink-card' + (active ? ' active' : '');
@@ -242,50 +334,42 @@ function makeDrinkCard(drink) {
   inner += `<button class="btn-plus" data-id="${drink.id}">+</button>`;
   inner += `</div>`;
 
-  // Inputs de código para spirits (uno por unidad)
-  if (drink.isSpirit && active) {
-    const codes = state.brandCodes[drink.id] || [];
-    for (let i = 0; i < qty; i++) {
-      const val = (codes[i] || 'AB').toUpperCase();
-      inner += `<input class="code-input" data-id="${drink.id}" data-idx="${i}"
-        maxlength="2" value="${val}" autocomplete="off" autocorrect="off"
-        style="text-transform:uppercase" />`;
-    }
+  if (active && selections.length > 0) {
+    inner += `<div class="selection-tags">`;
+    selections.forEach((sel) => {
+      if (sel) inner += `<div class="sel-tag">${sel}</div>`;
+    });
+    inner += `</div>`;
   }
 
   card.innerHTML = inner;
 
   card.querySelector('.btn-plus')?.addEventListener('click', () => {
-    state.quantities[drink.id] = (state.quantities[drink.id] || 0) + 1;
-    if (drink.isSpirit) {
-      if (!state.brandCodes[drink.id]) state.brandCodes[drink.id] = [];
-      state.brandCodes[drink.id].push('AB');
+    if (hasOptions) {
+      openBrandModal(drink, (selection) => {
+        state.quantities[drink.id] = (state.quantities[drink.id] || 0) + 1;
+        if (!state.brandSelections[drink.id]) state.brandSelections[drink.id] = [];
+        state.brandSelections[drink.id].push(selection);
+        refreshDrinkCard(drink);
+      });
+    } else {
+      state.quantities[drink.id] = (state.quantities[drink.id] || 0) + 1;
+      refreshDrinkCard(drink);
     }
-    refreshDrinkCard(drink);
   });
 
   card.querySelector('.btn-minus')?.addEventListener('click', () => {
     const newQty = Math.max(0, (state.quantities[drink.id] || 0) - 1);
     if (newQty === 0) {
       delete state.quantities[drink.id];
-      delete state.brandCodes[drink.id];
+      delete state.brandSelections[drink.id];
     } else {
       state.quantities[drink.id] = newQty;
-      if (drink.isSpirit && state.brandCodes[drink.id]) {
-        state.brandCodes[drink.id] = state.brandCodes[drink.id].slice(0, -1);
+      if (state.brandSelections[drink.id]) {
+        state.brandSelections[drink.id] = state.brandSelections[drink.id].slice(0, -1);
       }
     }
     refreshDrinkCard(drink);
-  });
-
-  card.querySelectorAll('.code-input').forEach((input) => {
-    input.addEventListener('input', (e) => {
-      const idx = parseInt(e.target.dataset.idx);
-      const val = e.target.value.toUpperCase().replace(/[^A-Z]/g, '').slice(0, 2);
-      e.target.value = val;
-      if (!state.brandCodes[drink.id]) state.brandCodes[drink.id] = [];
-      state.brandCodes[drink.id][idx] = val || 'AB';
-    });
   });
 
   return card;
@@ -305,20 +389,20 @@ function buildPedidos() {
     const drink = allDrinks.find((d) => d.id === drinkId);
     if (!drink) return;
 
-    if (drink.isSpirit) {
-      const codes = state.brandCodes[drinkId] || [];
+    if (drink.brands || drink.regions) {
+      const sels = state.brandSelections[drinkId] || [];
       const map = {};
       for (let i = 0; i < cantidad; i++) {
-        const code = (codes[i] || 'AB').trim();
-        map[code] = (map[code] || 0) + 1;
+        const sel = (sels[i] || '').trim();
+        map[sel] = (map[sel] || 0) + 1;
       }
-      Object.entries(map).forEach(([code, cnt]) => {
+      Object.entries(map).forEach(([sel, cnt]) => {
         pedidos.push({
-          drinkId: `${drinkId}|${code}`,
+          drinkId: sel ? `${drinkId}|${sel}` : drinkId,
           drinkName: drink.name,
           drinkEmoji: drink.emoji,
           cantidad: cnt,
-          marca: code,
+          marca: sel || null,
         });
       });
     } else {
@@ -346,14 +430,14 @@ async function handleConfirmar() {
       .eq('mesa_id', state.mesa.id);
 
     const rows = pedidosSeleccionados.map((p) => ({
-      miembro_id: state.miembro.id,
-      mesa_id:    state.mesa.id,
-      drink_id:   p.drinkId,
-      drink_name: p.drinkName,
+      miembro_id:  state.miembro.id,
+      mesa_id:     state.mesa.id,
+      drink_id:    p.drinkId,
+      drink_name:  p.drinkName,
       drink_emoji: p.drinkEmoji,
-      cantidad:   p.cantidad,
-      marca:      p.marca || null,
-      estado:     'confirmado',
+      cantidad:    p.cantidad,
+      marca:       p.marca || null,
+      estado:      'confirmado',
     }));
 
     const { error } = await sb.from('pedidos').insert(rows);
@@ -381,20 +465,19 @@ function renderConfirmed() {
     const drink = allDrinks.find((d) => d.id === drinkId);
     if (!drink) return;
 
-    if (drink.isSpirit) {
-      // Mostrar cada código como fila separada
-      const codes = state.brandCodes[drinkId] || [];
+    if (drink.brands || drink.regions) {
+      const sels = state.brandSelections[drinkId] || [];
       const map = {};
       for (let i = 0; i < qty; i++) {
-        const code = (codes[i] || 'AB').trim();
-        map[code] = (map[code] || 0) + 1;
+        const sel = (sels[i] || '').trim();
+        map[sel] = (map[sel] || 0) + 1;
       }
-      Object.entries(map).forEach(([code, cnt]) => {
+      Object.entries(map).forEach(([sel, cnt]) => {
         const row = document.createElement('div');
         row.className = 'confirmed-drink-row';
         row.innerHTML = `
           <span class="confirmed-drink-emoji">${drink.emoji}</span>
-          <span class="confirmed-drink-name">${drink.name} ${code}</span>
+          <span class="confirmed-drink-name">${drink.name}${sel ? ' — ' + sel : ''}</span>
           <span class="confirmed-drink-qty">×${cnt}</span>
         `;
         list.appendChild(row);
@@ -416,7 +499,6 @@ function renderConfirmed() {
 }
 
 async function handleModificar() {
-  // Vuelve a la pantalla de pedido con el pedido pre-cargado
   renderOrderScreen();
   showScreen('order');
 }
@@ -424,19 +506,17 @@ async function handleModificar() {
 async function handleBorrar() {
   if (!confirm('¿Seguro que quieres borrar tu pedido?')) return;
 
-  // Primero actualizar estado para disparar realtime en supervisión
   await sb.from('pedidos')
     .update({ estado: 'modificando' })
     .eq('miembro_id', state.miembro.id)
     .eq('mesa_id', state.mesa.id);
 
-  // Luego borrar
   await sb.from('pedidos').delete()
     .eq('miembro_id', state.miembro.id)
     .eq('mesa_id', state.mesa.id);
 
   state.quantities = {};
-  state.brandCodes = {};
+  state.brandSelections = {};
   renderOrderScreen();
   showScreen('order');
 }
@@ -501,7 +581,7 @@ function subscribeRealtime() {
         showScreen('reparto');
       } else if (newMesa.estado === 'abierta') {
         state.quantities = {};
-        state.brandCodes = {};
+        state.brandSelections = {};
         renderOrderScreen();
         showScreen('order');
       }
