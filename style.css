@@ -451,6 +451,9 @@ button {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  box-sizing: border-box;
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
 }
 .chat-header {
   display: flex;
@@ -498,10 +501,11 @@ button {
 }
 .chat-msg-name {
   color: var(--gold);
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 900;
-  min-width: 70px;
-  max-width: 70px;
+  width: 60px;
+  min-width: 60px;
+  max-width: 60px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -511,26 +515,32 @@ button {
 .chat-msg-text {
   flex: 1;
   color: #ffffff;
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 400;
   line-height: 1.35;
   word-break: break-word;
   white-space: pre-wrap;
   min-width: 0;
+  overflow-wrap: anywhere;
 }
 .chat-msg-time {
   color: var(--text-muted);
   font-size: 11px;
+  width: 34px;
+  min-width: 34px;
+  text-align: right;
   flex-shrink: 0;
 }
 
 .chat-input-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 14px 20px;
+  gap: 8px;
+  padding: 10px 16px 20px;
   border-top: 1px solid var(--border);
   flex-shrink: 0;
+  box-sizing: border-box;
+  width: 100%;
 }
 #chat-input {
   flex: 1;
