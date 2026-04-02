@@ -743,8 +743,21 @@ document.addEventListener('DOMContentLoaded', () => {
     renderOrderScreen();
     showScreen('order');
   });
-  $('btn-chat-order')?.addEventListener('click', openChat);
-  $('btn-chat-confirmed')?.addEventListener('click', openChat);
+
+  // Ajustar chat al teclado en iOS
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', () => {
+      const modal = $('chat-modal');
+      if (!modal || modal.style.display === 'none') return;
+      const sheet = modal.querySelector('.chat-sheet');
+      if (sheet) {
+        const vh = window.visualViewport.height;
+        sheet.style.height = Math.round(vh * 0.88) + 'px';
+      }
+      const container = $('chat-messages');
+      if (container) setTimeout(() => { container.scrollTop = container.scrollHeight; }, 100);
+    });
+  }
 });
 
 init();
