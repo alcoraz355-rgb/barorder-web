@@ -87,6 +87,9 @@ const state = {
   customDrinks:     [],
   selectedCategory: 'Todos',
   channel:          null,
+  chatChannel:      null,
+  chatMensajes:     [],
+  hasUnread:        false,
 };
 
 const SESSION_KEY = 'barorder_web_session';
@@ -169,7 +172,7 @@ async function init() {
   const pathParts = window.location.pathname.split('/').filter(Boolean);
   const mesaCodigo = (pathParts[0] || '').toUpperCase();
 
-  if (!mesaCodigo || !mesaCodigo.startsWith('MESA-')) {
+  if (!mesaCodigo || (!mesaCodigo.startsWith('GR-') && !mesaCodigo.startsWith('MESA-'))) {
     showScreen('closed');
     $('screen-closed').querySelector('.closed-title').textContent = 'Enlace inválido';
     $('screen-closed').querySelector('.closed-sub').textContent = 'Pide al organizador que te comparta el enlace correcto.';
@@ -201,6 +204,7 @@ async function init() {
       state.nombre  = miembro.nombre;
       await cargarPedidosExistentes();
       subscribeRealtime();
+      await initChat();
       if (mesa.estado === 'lanzada') {
         await renderReparto();
         showScreen('reparto');
@@ -212,7 +216,8 @@ async function init() {
     }
   }
 
-  $('join-mesa-text').textContent = `Mesa ${mesaCodigo} — ¿Cuál es tu nombre?`;
+  const nombreGrupo = mesa.nombre || mesaCodigo;
+  $('join-mesa-text').textContent = `"${nombreGrupo}" — ¿Cuál es tu nombre?`;
   $('btn-join').addEventListener('click', handleJoin);
   $('input-nombre').addEventListener('keydown', (e) => { if (e.key === 'Enter') handleJoin(); });
   showScreen('join');
@@ -259,6 +264,7 @@ async function handleJoin() {
     saveSession(state.mesa.codigo, miembro.id, nombre);
 
     subscribeRealtime();
+    await initChat();
     renderOrderScreen();
     showScreen('order');
   } catch (e) {
@@ -270,7 +276,7 @@ async function handleJoin() {
 
 // ─── Pantalla de pedido ───────────────────────────────────────────────────────
 function renderOrderScreen() {
-  $('order-mesa-code').textContent = state.mesa.codigo;
+  $('order-mesa-code').textContent = state.mesa.nombre || state.mesa.codigo;
   renderCategories();
   renderDrinks();
   $('btn-confirmar').disabled = false;
@@ -454,7 +460,7 @@ async function handleConfirmar() {
 
 // ─── Pantalla confirmado ──────────────────────────────────────────────────────
 function renderConfirmed() {
-  $('conf-mesa-code').textContent = state.mesa.codigo;
+  $('conf-mesa-code').textContent = state.mesa.nombre || state.mesa.codigo;
   $('conf-user-name').textContent = `Pedido de ${state.nombre}`;
 
   const allDrinks = getAllDrinks();
@@ -597,6 +603,122 @@ function subscribeRealtime() {
     .subscribe();
 }
 
+// ─── Chat ─────────────────────────────────────────────────────────────────────
+
+const CHAT_KEY = (mesaId) => `barorder_chat_lastread_${mesaId}`;
+
+async function initChat() {
+  if (!state.mesa || !state.miembro) return;
+
+  // Comprobar no leídos
+  const lastReadRaw = localStorage.getItem(CHAT_KEY(state.mesa.id));
+  const lastReadTime = lastReadRaw ? new Date(lastReadRaw) : new Date(0);
+  const { data: msgs } = await sb.from('mensajes').select('*').eq('mesa_id', state.mesa.id).order('created_at', { ascending: true });
+  state.chatMensajes = msgs || [];
+  const hayNuevos = state.chatMensajes.some((m) => m.miembro_id !== state.miembro.id && new Date(m.created_at) > lastReadTime);
+  setUnread(hayNuevos);
+
+  // Suscripción en tiempo real
+  if (state.chatChannel) state.chatChannel.unsubscribe();
+  state.chatChannel = sb.channel(`chat_web_${state.mesa.id}_${Date.now()}`)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes', filter: `mesa_id=eq.${state.mesa.id}` }, (payload) => {
+      const nuevo = payload.new;
+      if (state.chatMensajes.find((m) => m.id === nuevo.id)) return;
+      state.chatMensajes.push(nuevo);
+      if (nuevo.miembro_id !== state.miembro.id) setUnread(true);
+      const modal = $('chat-modal');
+      if (modal.style.display !== 'none') appendMessage(nuevo);
+    })
+    .subscribe();
+}
+
+function setUnread(val) {
+  state.hasUnread = val;
+  document.querySelectorAll('.chat-fab-btn').forEach((btn) => {
+    btn.classList.toggle('unread', val);
+  });
+}
+
+function openChat() {
+  const modal = $('chat-modal');
+  modal.style.display = 'flex';
+
+  // Renderizar mensajes
+  const container = $('chat-messages');
+  container.innerHTML = '';
+  if (state.chatMensajes.length === 0) {
+    container.innerHTML = '<div class="chat-empty">Sin mensajes aún. ¡Empieza la conversación!</div>';
+  } else {
+    state.chatMensajes.forEach((m) => appendMessage(m));
+  }
+  container.scrollTop = container.scrollHeight;
+
+  // Marcar como leído
+  setUnread(false);
+  localStorage.setItem(CHAT_KEY(state.mesa.id), new Date().toISOString());
+
+  modal.onclick = (e) => { if (e.target === modal) closeChat(); };
+  $('btn-chat-close').onclick = closeChat;
+  $('btn-chat-send').onclick = handleChatSend;
+  const input = $('chat-input');
+  input.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChatSend(); } };
+  input.focus();
+}
+
+function closeChat() {
+  $('chat-modal').style.display = 'none';
+}
+
+function appendMessage(msg) {
+  const container = $('chat-messages');
+  const emptyEl = container.querySelector('.chat-empty');
+  if (emptyEl) emptyEl.remove();
+
+  const isMe = msg.miembro_id === state.miembro.id;
+  const d = new Date(msg.created_at);
+  const time = d.getHours().toString().padStart(2, '0') + ':' + d.getMinutes().toString().padStart(2, '0');
+
+  const wrap = document.createElement('div');
+  wrap.className = 'chat-msg-wrap' + (isMe ? ' me' : '');
+  wrap.innerHTML = `
+    <div class="chat-msg-name">${escapeHtml(msg.nombre)}</div>
+    <div class="chat-bubble${isMe ? ' me' : ''}">
+      <span class="chat-msg-text">${escapeHtml(msg.texto)}</span>
+      <span class="chat-msg-time">${time}</span>
+    </div>
+  `;
+  container.appendChild(wrap);
+  container.scrollTop = container.scrollHeight;
+}
+
+function escapeHtml(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+async function handleChatSend() {
+  const input = $('chat-input');
+  const texto = input.value.trim();
+  if (!texto) return;
+
+  input.value = '';
+  const btn = $('btn-chat-send');
+  btn.disabled = true;
+
+  try {
+    await sb.from('mensajes').insert({
+      mesa_id: state.mesa.id,
+      miembro_id: state.miembro.id,
+      nombre: state.nombre,
+      texto,
+    });
+  } catch (e) {
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+    input.focus();
+  }
+}
+
 // ─── Sesión ───────────────────────────────────────────────────────────────────
 function saveSession(mesaCodigo, miembroId, nombre) {
   localStorage.setItem(SESSION_KEY, JSON.stringify({ mesaCodigo, miembroId, nombre }));
@@ -617,6 +739,8 @@ document.addEventListener('DOMContentLoaded', () => {
     renderOrderScreen();
     showScreen('order');
   });
+  $('btn-chat-order')?.addEventListener('click', openChat);
+  $('btn-chat-confirmed')?.addEventListener('click', openChat);
 });
 
 init();
