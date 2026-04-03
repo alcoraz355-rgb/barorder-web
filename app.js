@@ -7,29 +7,40 @@
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let _audioCtx = null;
-function getAudioCtx() {
-  if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  if (_audioCtx.state === 'suspended') _audioCtx.resume();
-  return _audioCtx;
+let _audioUnlocked = false;
+
+function unlockAudio() {
+  if (_audioUnlocked) return;
+  try {
+    if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    // Reproducir buffer silencioso para desbloquear iOS Safari
+    const buf = _audioCtx.createBuffer(1, 1, 22050);
+    const src = _audioCtx.createBufferSource();
+    src.buffer = buf;
+    src.connect(_audioCtx.destination);
+    src.start(0);
+    _audioCtx.resume().then(() => { _audioUnlocked = true; });
+  } catch (_) {}
 }
-// Desbloquear AudioContext en el primer toque del usuario
-document.addEventListener('touchstart', () => { try { getAudioCtx(); } catch (_) {} }, { once: true });
-document.addEventListener('click', () => { try { getAudioCtx(); } catch (_) {} }, { once: true });
+
+document.addEventListener('touchstart', unlockAudio, { passive: true });
+document.addEventListener('click', unlockAudio);
 
 function playBeep() {
   try {
-    const ctx = getAudioCtx();
-    const now = ctx.currentTime;
-    const osc1 = ctx.createOscillator();
-    const gain1 = ctx.createGain();
-    osc1.connect(gain1); gain1.connect(ctx.destination);
+    if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (_audioCtx.state === 'suspended') _audioCtx.resume();
+    const now = _audioCtx.currentTime;
+    const osc1 = _audioCtx.createOscillator();
+    const gain1 = _audioCtx.createGain();
+    osc1.connect(gain1); gain1.connect(_audioCtx.destination);
     osc1.type = 'sine'; osc1.frequency.value = 1047;
     gain1.gain.setValueAtTime(0.35, now);
     gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
     osc1.start(now); osc1.stop(now + 0.28);
-    const osc2 = ctx.createOscillator();
-    const gain2 = ctx.createGain();
-    osc2.connect(gain2); gain2.connect(ctx.destination);
+    const osc2 = _audioCtx.createOscillator();
+    const gain2 = _audioCtx.createGain();
+    osc2.connect(gain2); gain2.connect(_audioCtx.destination);
     osc2.type = 'sine'; osc2.frequency.value = 1319;
     gain2.gain.setValueAtTime(0.35, now + 0.28);
     gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
