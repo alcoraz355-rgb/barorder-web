@@ -610,23 +610,24 @@ async function renderReparto() {
 function subscribePresence() {
   if (state.presenceChannel) return;
 
-  const trackMe = async () => {
+  state.presenceChannel = sb.channel(`activity_${state.mesa.id}`).subscribe();
+
+  const sendPing = () => {
     try {
-      if (state.presenceChannel) await state.presenceChannel.track({ nombre: state.nombre, isAdmin: false });
+      state.presenceChannel.send({
+        type: 'broadcast', event: 'ping',
+        payload: { nombre: state.nombre, miembroId: state.miembro.id },
+      });
     } catch (_) {}
   };
 
-  state.presenceChannel = sb.channel(`presence_${state.mesa.id}`, { config: { presence: { key: state.miembro.id } } })
-    .subscribe(async (status) => {
-      if (status === 'SUBSCRIBED') await trackMe();
-    });
+  // Ping inmediato y cada 20s
+  setTimeout(sendPing, 500);
+  state.presenceInterval = setInterval(sendPing, 20000);
 
-  // Re-track cada 25s para mantener presencia viva
-  state.presenceInterval = setInterval(trackMe, 25000);
-
-  // Re-track al volver a la pestaña / pantalla
+  // Ping extra al volver a la pantalla
   document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') trackMe();
+    if (document.visibilityState === 'visible') sendPing();
   });
 }
 
