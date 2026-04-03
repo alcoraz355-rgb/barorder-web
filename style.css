@@ -63,6 +63,14 @@ html, body {
   font-weight: 700;
   color: var(--text-muted);
 }
+#order-mesa-code {
+  font-size: 18px;
+  font-weight: 900;
+  color: #E03030;
+  background: transparent;
+  border: none;
+  padding: 0;
+}
 
 /* ── Welcome / Name input ───────────────────────────────────── */
 .welcome-container {
