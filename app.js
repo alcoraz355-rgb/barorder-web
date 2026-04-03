@@ -129,6 +129,21 @@ function showScreen(name) {
   $(`screen-${name}`).classList.add('active');
 }
 
+function showClosedByAdmin() {
+  const el = $('screen-closed');
+  if (el) {
+    const title = el.querySelector('.closed-title');
+    const sub = el.querySelector('.closed-sub');
+    const emoji = el.querySelector('.closed-emoji');
+    if (title) title.textContent = '¡El grupo ha finalizado!';
+    if (sub) sub.textContent = 'El administrador ha cerrado el grupo. ¡Gracias por venir! 🍻';
+    if (emoji) emoji.textContent = '🎉';
+  }
+  showScreen('closed');
+  // Limpiar sesión local
+  localStorage.removeItem('barorder_session');
+}
+
 function getAllDrinks() {
   // Mezclar bebidas del catálogo + personalizadas del admin
   const customs = (state.customDrinks || []).map((d) => ({ ...d, isCustom: true }));
@@ -610,7 +625,11 @@ async function renderReparto() {
 function subscribePresence() {
   if (state.presenceChannel) return;
 
-  state.presenceChannel = sb.channel(`activity_${state.mesa.id}`).subscribe();
+  state.presenceChannel = sb.channel(`activity_${state.mesa.id}`)
+    .on('broadcast', { event: 'grupo_cerrado' }, () => {
+      showClosedByAdmin();
+    })
+    .subscribe();
 
   const sendPing = () => {
     try {
