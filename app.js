@@ -6,25 +6,34 @@
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+let _audioCtx = null;
+function getAudioCtx() {
+  if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (_audioCtx.state === 'suspended') _audioCtx.resume();
+  return _audioCtx;
+}
+// Desbloquear AudioContext en el primer toque del usuario
+document.addEventListener('touchstart', () => { try { getAudioCtx(); } catch (_) {} }, { once: true });
+document.addEventListener('click', () => { try { getAudioCtx(); } catch (_) {} }, { once: true });
+
 function playBeep() {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    // Primer tono: Do5 (1047Hz)
+    const ctx = getAudioCtx();
+    const now = ctx.currentTime;
     const osc1 = ctx.createOscillator();
     const gain1 = ctx.createGain();
     osc1.connect(gain1); gain1.connect(ctx.destination);
     osc1.type = 'sine'; osc1.frequency.value = 1047;
-    gain1.gain.setValueAtTime(0.35, ctx.currentTime);
-    gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.28);
-    osc1.start(ctx.currentTime); osc1.stop(ctx.currentTime + 0.28);
-    // Segundo tono: Mi5 (1319Hz)
+    gain1.gain.setValueAtTime(0.35, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+    osc1.start(now); osc1.stop(now + 0.28);
     const osc2 = ctx.createOscillator();
     const gain2 = ctx.createGain();
     osc2.connect(gain2); gain2.connect(ctx.destination);
     osc2.type = 'sine'; osc2.frequency.value = 1319;
-    gain2.gain.setValueAtTime(0.35, ctx.currentTime + 0.28);
-    gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
-    osc2.start(ctx.currentTime + 0.28); osc2.stop(ctx.currentTime + 0.6);
+    gain2.gain.setValueAtTime(0.35, now + 0.28);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+    osc2.start(now + 0.28); osc2.stop(now + 0.6);
   } catch (_) {}
 }
 
@@ -671,26 +680,26 @@ async function initChat() {
     .on('broadcast', { event: 'nuevo_mensaje' }, ({ payload }) => {
       if (!payload || state.chatMensajes.find((m) => m.id === payload.id)) return;
       state.chatMensajes.push(payload);
-      playBeep();
       setUnread(true);
       if ($('chat-modal').style.display !== 'none') {
         appendMessage(payload);
         setUnread(false);
         localStorage.setItem(CHAT_KEY(state.mesa.id), new Date().toISOString());
       }
+      playBeep();
     })
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes', filter: `mesa_id=eq.${state.mesa.id}` }, (payload) => {
       const nuevo = payload.new;
       if (nuevo.miembro_id === state.miembro.id) return;
       if (state.chatMensajes.find((m) => m.id === nuevo.id)) return;
       state.chatMensajes.push(nuevo);
-      playBeep();
       setUnread(true);
       if ($('chat-modal').style.display !== 'none') {
         appendMessage(nuevo);
         setUnread(false);
         localStorage.setItem(CHAT_KEY(state.mesa.id), new Date().toISOString());
       }
+      playBeep();
     })
     .subscribe();
 }
