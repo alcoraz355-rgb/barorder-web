@@ -6,45 +6,31 @@
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-let _audioCtx = null;
-let _audioUnlocked = false;
+// ─── Audio (compatible iOS Safari) ───────────────────────────────────────────
+let _beepAudio = null;
 
-function unlockAudio() {
-  if (_audioUnlocked) return;
-  try {
-    if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    // Reproducir buffer silencioso para desbloquear iOS Safari
-    const buf = _audioCtx.createBuffer(1, 1, 22050);
-    const src = _audioCtx.createBufferSource();
-    src.buffer = buf;
-    src.connect(_audioCtx.destination);
-    src.start(0);
-    _audioCtx.resume().then(() => { _audioUnlocked = true; });
-  } catch (_) {}
+function getBeepAudio() {
+  if (!_beepAudio) _beepAudio = document.getElementById('beep-audio');
+  return _beepAudio;
 }
 
-document.addEventListener('touchstart', unlockAudio, { passive: true });
-document.addEventListener('click', unlockAudio);
+// Desbloquear audio en el primer gesto del usuario (iOS Safari lo requiere)
+function unlockAudio() {
+  const a = getBeepAudio();
+  if (!a) return;
+  a.play().catch(() => {});
+  a.pause();
+  a.currentTime = 0;
+}
+document.addEventListener('touchstart', unlockAudio, { once: true, passive: true });
+document.addEventListener('click', unlockAudio, { once: true });
 
 function playBeep() {
   try {
-    if (!_audioCtx) _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    if (_audioCtx.state === 'suspended') _audioCtx.resume();
-    const now = _audioCtx.currentTime;
-    const osc1 = _audioCtx.createOscillator();
-    const gain1 = _audioCtx.createGain();
-    osc1.connect(gain1); gain1.connect(_audioCtx.destination);
-    osc1.type = 'sine'; osc1.frequency.value = 1047;
-    gain1.gain.setValueAtTime(0.35, now);
-    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
-    osc1.start(now); osc1.stop(now + 0.28);
-    const osc2 = _audioCtx.createOscillator();
-    const gain2 = _audioCtx.createGain();
-    osc2.connect(gain2); gain2.connect(_audioCtx.destination);
-    osc2.type = 'sine'; osc2.frequency.value = 1319;
-    gain2.gain.setValueAtTime(0.35, now + 0.28);
-    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
-    osc2.start(now + 0.28); osc2.stop(now + 0.6);
+    const a = getBeepAudio();
+    if (!a) return;
+    a.currentTime = 0;
+    a.play().catch(() => {});
   } catch (_) {}
 }
 
