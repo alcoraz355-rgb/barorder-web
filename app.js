@@ -6,6 +6,22 @@
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+function playBeep() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.value = 880;
+    gain.gain.setValueAtTime(0.4, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.3);
+  } catch (_) {}
+}
+
 const CATEGORIES = ['Todos', 'Cerveza', 'Vino', 'Cóctel', 'Spirits', 'Sin alcohol', 'Aperitivos'];
 
 const DRINKS = [
@@ -649,6 +665,7 @@ async function initChat() {
     .on('broadcast', { event: 'nuevo_mensaje' }, ({ payload }) => {
       if (!payload || state.chatMensajes.find((m) => m.id === payload.id)) return;
       state.chatMensajes.push(payload);
+      playBeep();
       setUnread(true);
       if ($('chat-modal').style.display !== 'none') {
         appendMessage(payload);
@@ -661,6 +678,7 @@ async function initChat() {
       if (nuevo.miembro_id === state.miembro.id) return;
       if (state.chatMensajes.find((m) => m.id === nuevo.id)) return;
       state.chatMensajes.push(nuevo);
+      playBeep();
       setUnread(true);
       if ($('chat-modal').style.display !== 'none') {
         appendMessage(nuevo);
