@@ -608,7 +608,7 @@ async function renderReparto() {
 
 // ─── Realtime ─────────────────────────────────────────────────────────────────
 function subscribePresence() {
-  if (state.presenceChannel) state.presenceChannel.unsubscribe();
+  if (state.presenceChannel) return;
   state.presenceChannel = sb.channel(`presence_${state.mesa.id}`, { config: { presence: { key: state.miembro.id } } })
     .subscribe(async (status) => {
       if (status === 'SUBSCRIBED') {
