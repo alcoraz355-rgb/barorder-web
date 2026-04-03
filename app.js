@@ -102,7 +102,9 @@ function showScreen(name) {
 }
 
 function getAllDrinks() {
-  return [...DRINKS, ...state.customDrinks];
+  // Mezclar bebidas del catálogo + personalizadas del admin
+  const customs = (state.customDrinks || []).map((d) => ({ ...d, isCustom: true }));
+  return [...DRINKS, ...customs];
 }
 
 // ─── Modal de selección de marca/región ───────────────────────────────────────
@@ -622,16 +624,30 @@ async function initChat() {
   const fab = $('chat-fab');
   if (fab) { fab.style.display = 'flex'; fab.onclick = openChat; }
 
-  // Suscripción: solo mensajes de OTROS (los propios se muestran por optimista)
+  // Canal realtime — broadcast para velocidad máxima + postgres_changes como respaldo
   if (state.chatChannel) state.chatChannel.unsubscribe();
-  state.chatChannel = sb.channel(`chat_web_${state.mesa.id}_${Date.now()}`)
+  state.chatChannel = sb.channel(`chat_room_${state.mesa.id}`, { config: { broadcast: { self: false } } })
+    .on('broadcast', { event: 'nuevo_mensaje' }, ({ payload }) => {
+      if (!payload || state.chatMensajes.find((m) => m.id === payload.id)) return;
+      state.chatMensajes.push(payload);
+      setUnread(true);
+      if ($('chat-modal').style.display !== 'none') {
+        appendMessage(payload);
+        setUnread(false);
+        localStorage.setItem(CHAT_KEY(state.mesa.id), new Date().toISOString());
+      }
+    })
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes', filter: `mesa_id=eq.${state.mesa.id}` }, (payload) => {
       const nuevo = payload.new;
-      if (nuevo.miembro_id === state.miembro.id) return; // propio, ya está por optimista
+      if (nuevo.miembro_id === state.miembro.id) return;
       if (state.chatMensajes.find((m) => m.id === nuevo.id)) return;
       state.chatMensajes.push(nuevo);
       setUnread(true);
-      if ($('chat-modal').style.display !== 'none') appendMessage(nuevo);
+      if ($('chat-modal').style.display !== 'none') {
+        appendMessage(nuevo);
+        setUnread(false);
+        localStorage.setItem(CHAT_KEY(state.mesa.id), new Date().toISOString());
+      }
     })
     .subscribe();
 }
@@ -646,11 +662,9 @@ function openChat() {
   const modal = $('chat-modal');
   modal.style.display = 'flex';
 
-  // Título
   const titleEl = modal.querySelector('.chat-title');
   if (titleEl) titleEl.textContent = `💬  Chat — ${state.mesa.nombre || state.mesa.codigo}`;
 
-  // Renderizar todos los mensajes
   const container = $('chat-messages');
   container.innerHTML = '';
   if (state.chatMensajes.length === 0) {
@@ -658,7 +672,7 @@ function openChat() {
   } else {
     state.chatMensajes.forEach((m) => appendMessage(m));
   }
-  container.scrollTop = container.scrollHeight;
+  setTimeout(() => { container.scrollTop = container.scrollHeight; }, 50);
 
   setUnread(false);
   localStorage.setItem(CHAT_KEY(state.mesa.id), new Date().toISOString());
@@ -667,7 +681,6 @@ function openChat() {
   $('btn-chat-close').onclick = closeChat;
 
   const sendBtn = $('btn-chat-send');
-  sendBtn.onclick = null;
   sendBtn.ontouchend = (e) => { e.preventDefault(); handleChatSend(); };
   sendBtn.onclick = handleChatSend;
 
@@ -708,19 +721,20 @@ async function handleChatSend() {
   if (!texto) return;
   input.value = '';
 
-  // Optimista: mostrar al instante
-  const tempMsg = { id: `tmp_${Date.now()}`, mesa_id: state.mesa.id, miembro_id: state.miembro.id, nombre: state.nombre, texto, created_at: new Date().toISOString() };
+  const now = new Date().toISOString();
+  const tempMsg = { id: `tmp_${Date.now()}`, mesa_id: state.mesa.id, miembro_id: state.miembro.id, nombre: state.nombre, texto, created_at: now };
   state.chatMensajes.push(tempMsg);
   appendMessage(tempMsg);
+  input.focus();
 
   try {
+    // Broadcast inmediato a todos los demás
+    await state.chatChannel.send({ type: 'broadcast', event: 'nuevo_mensaje', payload: { ...tempMsg, id: `bc_${Date.now()}` } });
+    // Guardar en BD
     await sb.from('mensajes').insert({ mesa_id: state.mesa.id, miembro_id: state.miembro.id, nombre: state.nombre, texto });
   } catch (e) {
-    state.chatMensajes = state.chatMensajes.filter((m) => m.id !== tempMsg.id);
-    $('chat-messages').querySelector(`[data-id="${tempMsg.id}"]`)?.remove();
-    alert('Error al enviar: ' + e.message);
+    console.error(e);
   }
-  input.focus();
 }
 
 // ─── Sesión ───────────────────────────────────────────────────────────────────
