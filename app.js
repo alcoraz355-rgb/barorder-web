@@ -607,18 +607,19 @@ async function renderReparto() {
 }
 
 // ─── Realtime ─────────────────────────────────────────────────────────────────
-function subscribeRealtime() {
-  if (state.channel) return;
+function subscribePresence() {
+  if (state.presenceChannel) state.presenceChannel.unsubscribe();
+  state.presenceChannel = sb.channel(`presence_${state.mesa.id}`, { config: { presence: { key: state.miembro.id } } })
+    .subscribe(async (status) => {
+      if (status === 'SUBSCRIBED') {
+        await state.presenceChannel.track({ nombre: state.nombre, isAdmin: false });
+      }
+    });
+}
 
-  // Presence — aparecer como conectado en el panel del admin
-  if (!state.presenceChannel) {
-    state.presenceChannel = sb.channel(`presence_${state.mesa.id}`, { config: { presence: { key: state.miembro.id } } })
-      .subscribe(async (status) => {
-        if (status === 'SUBSCRIBED') {
-          await state.presenceChannel.track({ nombre: state.nombre, isAdmin: false });
-        }
-      });
-  }
+function subscribeRealtime() {
+  subscribePresence();
+  if (state.channel) return;
 
   state.channel = sb.channel(`web_mesa_${state.mesa.id}`)
     .on('postgres_changes', {
