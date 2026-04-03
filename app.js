@@ -469,6 +469,13 @@ function renderConfirmed() {
   const list = $('confirmed-drinks-list');
   list.innerHTML = '';
 
+  const card = document.createElement('div');
+  card.className = 'confirmed-drinks-card';
+  const title = document.createElement('div');
+  title.className = 'confirmed-drinks-title';
+  title.textContent = 'MI PEDIDO';
+  card.appendChild(title);
+
   Object.entries(state.quantities).forEach(([drinkId, qty]) => {
     const drink = allDrinks.find((d) => d.id === drinkId);
     if (!drink) return;
@@ -488,7 +495,7 @@ function renderConfirmed() {
           <span class="confirmed-drink-name">${drink.name}${sel ? ' — ' + sel : ''}</span>
           <span class="confirmed-drink-qty">×${cnt}</span>
         `;
-        list.appendChild(row);
+        card.appendChild(row);
       });
     } else {
       const row = document.createElement('div');
@@ -498,9 +505,11 @@ function renderConfirmed() {
         <span class="confirmed-drink-name">${drink.name}</span>
         <span class="confirmed-drink-qty">×${qty}</span>
       `;
-      list.appendChild(row);
+      card.appendChild(row);
     }
   });
+
+  list.appendChild(card);
 
   $('btn-modificar').onclick = handleModificar;
   $('btn-borrar').onclick = handleBorrar;
