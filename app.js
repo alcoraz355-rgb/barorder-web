@@ -622,40 +622,7 @@ async function renderReparto() {
 }
 
 // ─── Realtime ─────────────────────────────────────────────────────────────────
-function subscribePresence() {
-  if (state.presenceChannel) {
-    // Re-añadir listener por si acaso
-    return;
-  }
-
-  state.presenceChannel = sb.channel(`activity_${state.mesa.id}`)
-    .on('broadcast', { event: 'grupo_cerrado' }, () => {
-      showClosedByAdmin();
-    })
-    .subscribe((status) => {
-      if (status === 'SUBSCRIBED') {
-        // Canal listo — enviar ping inicial
-        sendPing();
-      }
-    });
-
-  const sendPing = () => {
-    try {
-      state.presenceChannel.send({
-        type: 'broadcast', event: 'ping',
-        payload: { nombre: state.nombre, miembroId: state.miembro.id },
-      });
-    } catch (_) {}
-  };
-
-  // Ping cada 20s
-  state.presenceInterval = setInterval(sendPing, 20000);
-
-  // Ping extra al volver a la pantalla
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible') sendPing();
-  });
-}
+function subscribePresence() {}
 
 function subscribeRealtime() {
   subscribePresence();
@@ -671,7 +638,7 @@ function subscribeRealtime() {
       state.mesa = { ...state.mesa, ...newMesa };
 
       if (newMesa.estado === 'cerrada') {
-        showScreen('closed');
+        showClosedByAdmin();
       } else if (newMesa.estado === 'lanzada') {
         await renderReparto();
         showScreen('reparto');
