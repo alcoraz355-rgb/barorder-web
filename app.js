@@ -139,8 +139,10 @@ function showClosedByAdmin() {
     if (sub) sub.textContent = 'El administrador ha cerrado el grupo. ¡Gracias por venir! 🍻';
     if (emoji) emoji.textContent = '🎉';
   }
+  // Ocultar botón de chat
+  const fab = $('chat-fab');
+  if (fab) fab.style.display = 'none';
   showScreen('closed');
-  // Limpiar sesión local
   localStorage.removeItem('barorder_session');
 }
 
