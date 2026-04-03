@@ -623,13 +623,21 @@ async function renderReparto() {
 
 // ─── Realtime ─────────────────────────────────────────────────────────────────
 function subscribePresence() {
-  if (state.presenceChannel) return;
+  if (state.presenceChannel) {
+    // Re-añadir listener por si acaso
+    return;
+  }
 
   state.presenceChannel = sb.channel(`activity_${state.mesa.id}`)
     .on('broadcast', { event: 'grupo_cerrado' }, () => {
       showClosedByAdmin();
     })
-    .subscribe();
+    .subscribe((status) => {
+      if (status === 'SUBSCRIBED') {
+        // Canal listo — enviar ping inicial
+        sendPing();
+      }
+    });
 
   const sendPing = () => {
     try {
@@ -640,8 +648,7 @@ function subscribePresence() {
     } catch (_) {}
   };
 
-  // Ping inmediato y cada 20s
-  setTimeout(sendPing, 500);
+  // Ping cada 20s
   state.presenceInterval = setInterval(sendPing, 20000);
 
   // Ping extra al volver a la pantalla
