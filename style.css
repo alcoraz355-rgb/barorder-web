@@ -158,14 +158,11 @@ button {
 
 /* ── Category filter ─────────────────────────────────────────── */
 .category-scroll {
-  overflow-x: auto;
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   padding: 10px 12px;
-  scrollbar-width: none;
-  -webkit-overflow-scrolling: touch;
 }
-.category-scroll::-webkit-scrollbar { display: none; }
 .cat-pill {
   flex-shrink: 0;
   padding: 7px 14px;
