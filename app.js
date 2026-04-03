@@ -609,12 +609,25 @@ async function renderReparto() {
 // ─── Realtime ─────────────────────────────────────────────────────────────────
 function subscribePresence() {
   if (state.presenceChannel) return;
+
+  const trackMe = async () => {
+    try {
+      if (state.presenceChannel) await state.presenceChannel.track({ nombre: state.nombre, isAdmin: false });
+    } catch (_) {}
+  };
+
   state.presenceChannel = sb.channel(`presence_${state.mesa.id}`, { config: { presence: { key: state.miembro.id } } })
     .subscribe(async (status) => {
-      if (status === 'SUBSCRIBED') {
-        await state.presenceChannel.track({ nombre: state.nombre, isAdmin: false });
-      }
+      if (status === 'SUBSCRIBED') await trackMe();
     });
+
+  // Re-track cada 25s para mantener presencia viva
+  state.presenceInterval = setInterval(trackMe, 25000);
+
+  // Re-track al volver a la pestaña / pantalla
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') trackMe();
+  });
 }
 
 function subscribeRealtime() {
