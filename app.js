@@ -398,7 +398,7 @@ function makeDrinkCard(drink) {
   const qty = state.quantities[drink.id] || 0;
   const active = qty > 0;
   const selections = state.brandSelections[drink.id] || [];
-  const hasOptions = drink.brands || drink.regions;
+  const hasOptions = drink.brands || drink.regions || drink.steps;
 
   const card = document.createElement('div');
   card.className = 'drink-card' + (active ? ' active' : '');
@@ -468,7 +468,7 @@ function buildPedidos() {
     const drink = allDrinks.find((d) => d.id === drinkId);
     if (!drink) return;
 
-    if (drink.brands || drink.regions) {
+    if (drink.brands || drink.regions || drink.steps) {
       const sels = state.brandSelections[drinkId] || [];
       const map = {};
       for (let i = 0; i < cantidad; i++) {
