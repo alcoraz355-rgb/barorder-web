@@ -37,9 +37,18 @@ function playBeep() {
 const CATEGORIES = ['Todos', 'Cerveza', 'Vino', 'Cóctel', 'Spirits', 'Sin alcohol', 'Aperitivos'];
 
 const DRINKS = [
-  { id: 'c1', name: 'Cerveza',      emoji: '🍺', category: 'Cerveza' },
-  { id: 'c2', name: 'Cerveza sin',  emoji: '🍺', category: 'Cerveza' },
-  { id: 'c3', name: 'Clara',        emoji: '🍋', category: 'Cerveza' },
+  { id: 'c1', name: 'Cerveza', emoji: '🍺', category: 'Cerveza',
+    brands: ['Ámbar', 'Heineken', 'Cruzcampo', 'Estrella Damm', 'Mahou', 'San Miguel', 'Voll-Damm', 'Otro'],
+    mixers: ['Caña', 'Tercio', 'Tubo', 'Jarra'],
+    step1Label: 'Elige la marca', step2Label: 'Elige el tamaño', sep: ' ' },
+  { id: 'c2', name: 'Cerveza sin', emoji: '🍺', category: 'Cerveza',
+    brands: ['Ámbar', 'Heineken', 'Cruzcampo', 'Estrella Damm', 'Mahou', 'San Miguel', 'Otro'],
+    mixers: ['Caña', 'Tercio', 'Tubo'],
+    step1Label: 'Elige la marca', step2Label: 'Elige el tamaño', sep: ' ' },
+  { id: 'c3', name: 'Clara', emoji: '🍋', category: 'Cerveza',
+    brands: ['Ámbar', 'Heineken', 'Cruzcampo', 'Estrella Damm', 'Mahou', 'San Miguel', 'Otro'],
+    mixers: ['Caña', 'Tercio', 'Tubo'],
+    step1Label: 'Elige la marca', step2Label: 'Elige el tamaño', sep: ' ' },
   { id: 'c4', name: 'Jarra',        emoji: '🍻', category: 'Cerveza' },
 
   { id: 'v1', name: 'Vino tinto', emoji: '🍷', category: 'Vino',
@@ -92,7 +101,13 @@ const DRINKS = [
   { id: 'n7',  name: 'Limonada',    emoji: '🫧', category: 'Sin alcohol' },
   { id: 'n8',  name: 'Energética',  emoji: '⚡', category: 'Sin alcohol' },
   { id: 'n9',  name: 'Zumo',        emoji: '🍊', category: 'Sin alcohol' },
-  { id: 'n10', name: 'Café',        emoji: '☕', category: 'Sin alcohol' },
+  { id: 'n10', name: 'Café', emoji: '☕', category: 'Sin alcohol',
+    steps: [
+      { label: 'Tipo de café', options: ['Café con leche', 'Café solo', 'Cortado'] },
+      { label: 'Cafeína', options: ['Normal', 'Descafeinado'] },
+      { label: 'Endulzante', options: ['Con azúcar', 'Con sacarina', 'Sin azúcar'] },
+      { label: 'Leche', options: ['Leche fría', 'Leche caliente'] },
+    ] },
   { id: 'n11', name: 'Té',          emoji: '🍵', category: 'Sin alcohol' },
   { id: 'n12', name: 'Tónica',      emoji: '🫧', category: 'Sin alcohol' },
 
@@ -153,48 +168,59 @@ function getAllDrinks() {
 }
 
 // ─── Modal de selección de marca/región ───────────────────────────────────────
+function buildStepsWeb(drink) {
+  if (drink.steps) return drink.steps;
+  const steps = [];
+  const opts1 = drink.brands || drink.regions || [];
+  const opts2 = drink.mixers || drink.agings || [];
+  if (opts1.length) steps.push({ label: drink.step1Label || (drink.brands ? 'Elige el tipo' : 'Elige la región'), options: opts1 });
+  if (opts2.length) steps.push({ label: drink.step2Label || (drink.mixers ? 'Elige el refresco' : 'Elige la crianza'), options: opts2 });
+  return steps;
+}
+
+function getWebSep(drink) {
+  if (drink.sep !== undefined) return drink.sep;
+  if (drink.steps) return ' · ';
+  return drink.mixers ? ' + ' : ' ';
+}
+
 function openBrandModal(drink, onSelect) {
   const modal = $('brand-modal');
-  const step1Options = drink.brands || drink.regions || [];
-  const step2Options = drink.mixers || drink.agings || [];
+  const steps = buildStepsWeb(drink);
+  const sep = getWebSep(drink);
 
-  let step = 1;
-  let step1Value = null;
+  let stepIndex = 0;
+  let stepValues = [];
 
   function renderStep() {
-    const options = step === 1 ? step1Options : step2Options;
-    const label = step === 1
-      ? (drink.brands ? 'Elige el tipo' : 'Elige la región')
-      : (drink.mixers ? 'Elige el refresco' : 'Elige la crianza');
-
+    const current = steps[stepIndex];
     $('modal-drink-title').textContent = `${drink.emoji}  ${drink.name}`;
-    $('modal-label').textContent = label;
+    $('modal-label').textContent = current.label;
 
     const backEl = $('modal-back');
-    if (step === 2) {
+    if (stepIndex > 0) {
       backEl.style.display = 'flex';
-      $('modal-step1-value').textContent = step1Value;
-      backEl.onclick = () => { step = 1; step1Value = null; renderStep(); };
+      $('modal-step1-value').textContent = stepValues.join(sep);
+      backEl.onclick = () => { stepValues = stepValues.slice(0, -1); stepIndex--; renderStep(); };
     } else {
       backEl.style.display = 'none';
     }
 
     const optionsEl = $('modal-options');
     optionsEl.innerHTML = '';
-    options.forEach((opt) => {
+    current.options.forEach((opt) => {
       const btn = document.createElement('button');
       btn.className = 'modal-option';
       btn.innerHTML = `<span>${opt}</span><span class="modal-option-arrow">›</span>`;
       btn.onclick = () => {
-        if (step === 1 && step2Options.length > 0) {
-          step1Value = opt;
-          step = 2;
+        const newValues = [...stepValues, opt];
+        if (stepIndex < steps.length - 1) {
+          stepValues = newValues;
+          stepIndex++;
           renderStep();
         } else {
-          const sep = drink.mixers ? ' + ' : ' ';
-          const selection = step === 1 ? opt : `${step1Value}${sep}${opt}`;
           closeModal();
-          onSelect(selection);
+          onSelect(newValues.join(sep));
         }
       };
       optionsEl.appendChild(btn);
@@ -495,6 +521,12 @@ async function handleConfirmar() {
 
     const { error } = await sb.from('pedidos').insert(rows);
     if (error) throw error;
+
+    // Si la mesa estaba lanzada, volver a abrirla para indicar nuevos pedidos
+    if (state.mesa.estado === 'lanzada') {
+      await sb.from('mesas').update({ estado: 'abierta' }).eq('id', state.mesa.id);
+      state.mesa.estado = 'abierta';
+    }
 
     renderConfirmed();
     showScreen('confirmed');
