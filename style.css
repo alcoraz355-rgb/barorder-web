@@ -54,10 +54,9 @@ html, body {
 .logo-title { display: flex; align-items: center; gap: 8px; }
 .logo-title span { font-size: 22px; }
 .logo-title h1 { color: var(--gold); font-size: 22px; font-weight: 900; letter-spacing: 1px; }
-.search-box { display: flex; align-items: center; gap: 4px; background: #1A1A1A; border: 1px solid #333; border-radius: 20px; padding: 4px 10px; flex: 1; margin: 0 8px; max-width: 160px; }
-.search-box .search-icon { font-size: 13px; line-height: 1; flex-shrink: 0; }
-.search-box input { background: none; border: none; outline: none; color: #fff; font-size: 13px; width: 100%; min-width: 0; padding: 0; }
-.search-box input::placeholder { color: #666; }
+.search-bar { padding: 8px 12px; background: var(--bg); }
+.search-bar input { width: 100%; background: #1A1A1A; border: 1px solid #333; border-radius: 22px; padding: 9px 16px; color: #fff; font-size: 15px; outline: none; box-sizing: border-box; }
+.search-bar input::placeholder { color: #666; }
 .mesa-badge {
   background: var(--surface);
   border: 1px solid var(--border);

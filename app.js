@@ -454,10 +454,24 @@ function renderCategories() {
   });
 }
 
-function renderDrinks() {
+function renderDrinks(searchQuery) {
   const grid = $('drinks-grid');
   grid.innerHTML = '';
   const allDrinks = getAllDrinks();
+  const query = searchQuery !== undefined ? searchQuery : ($('search-input')?.value.trim().toLowerCase() || '');
+
+  if (query) {
+    const results = allDrinks.filter((d) => d.name.toLowerCase().includes(query));
+    if (!results.length) {
+      const empty = document.createElement('div');
+      empty.style.cssText = 'color:#666;text-align:center;margin-top:40px;font-size:15px;';
+      empty.textContent = 'Sin resultados';
+      grid.appendChild(empty);
+    } else {
+      results.forEach((drink) => grid.appendChild(makeDrinkCard(drink)));
+    }
+    return;
+  }
 
   if (state.selectedCategory === 'Todos') {
     CATEGORIES.filter((c) => c !== 'Todos').forEach((cat) => {
@@ -505,8 +519,6 @@ function makeDrinkCard(drink) {
   card.innerHTML = inner;
 
   card.querySelector('.btn-plus')?.addEventListener('click', () => {
-    const searchEl = $('search-input');
-    if (searchEl) searchEl.value = '';
     if (hasOptions) {
       openBrandModal(drink, (selection) => {
         state.quantities[drink.id] = (state.quantities[drink.id] || 0) + 1;
@@ -934,19 +946,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // ── Buscador ─────────────────────────────────────────────────────────────
   $('search-input')?.addEventListener('input', (e) => {
-    const query = e.target.value.trim().toLowerCase();
-    if (!query) return;
-    const allDrinks = getAllDrinks();
-    const found = allDrinks.find((d) => d.name.toLowerCase().includes(query));
-    if (!found) return;
-    // Si hay filtro de categoría activo y no coincide, cambiar a Todos
-    if (state.selectedCategory !== 'Todos' && found.category !== state.selectedCategory) {
-      state.selectedCategory = 'Todos';
-      renderCategories();
-      renderDrinks();
-    }
-    const card = document.getElementById(`card-${found.id}`);
-    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    renderDrinks(e.target.value.trim().toLowerCase());
   });
 
   $('search-input')?.addEventListener('keydown', (e) => {
