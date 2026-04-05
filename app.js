@@ -716,35 +716,27 @@ async function renderReparto() {
     .from('pedidos')
     .select('*, miembros(nombre)')
     .eq('mesa_id', state.mesa.id)
-    .eq('estado', 'confirmado');
-
-  const map = {};
-  (pedidos || []).forEach((p) => {
-    const label = p.drink_name + (p.marca ? ` ${p.marca}` : '');
-    if (!map[p.drink_id]) map[p.drink_id] = { emoji: p.drink_emoji, name: label, total: 0, personas: [] };
-    map[p.drink_id].total += p.cantidad;
-    map[p.drink_id].personas.push({ nombre: p.miembros?.nombre || '?', cantidad: p.cantidad });
-  });
+    .eq('estado', 'confirmado')
+    .eq('miembro_id', state.miembro.id);
 
   const container = $('reparto-lines');
   container.innerHTML = '';
 
-  Object.values(map).forEach((item) => {
-    const personasStr = item.personas.map((p) => {
-      let s = p.nombre;
-      if (p.cantidad > 1) s += ` x${p.cantidad}`;
-      return s;
-    }).join(', ');
+  if (!pedidos || pedidos.length === 0) {
+    container.innerHTML = '<div style="color:#888;text-align:center;margin-top:20px">No tienes pedidos confirmados</div>';
+    return;
+  }
 
+  pedidos.forEach((p) => {
+    const label = p.drink_name + (p.marca ? ` ${p.marca}` : '');
     const div = document.createElement('div');
     div.className = 'order-line';
     div.innerHTML = `
       <div class="order-line-top">
-        <span class="order-line-emoji">${item.emoji}</span>
-        <span class="order-line-name">${item.name}</span>
-        <span class="order-line-qty">×${item.total}</span>
+        <span class="order-line-emoji">${p.drink_emoji}</span>
+        <span class="order-line-name">${label}</span>
+        <span class="order-line-qty">×${p.cantidad}</span>
       </div>
-      <div class="order-line-personas">${personasStr}</div>
     `;
     container.appendChild(div);
   });
@@ -879,6 +871,16 @@ function closeChat() {
   $('chat-modal').style.display = 'none';
 }
 
+const PARTICIPANT_COLORS = ['#C0392B','#8E44AD','#1A6DAB','#16A085','#D35400','#27AE60','#2471A3','#884EA0','#B7950B','#196F3D'];
+const colorCache = {};
+function getParticipantColor(nombre) {
+  if (!colorCache[nombre]) {
+    const idx = Object.keys(colorCache).length % PARTICIPANT_COLORS.length;
+    colorCache[nombre] = PARTICIPANT_COLORS[idx];
+  }
+  return colorCache[nombre];
+}
+
 function appendMessage(msg) {
   const container = $('chat-messages');
   container.querySelector('.chat-empty')?.remove();
@@ -892,7 +894,8 @@ function appendMessage(msg) {
   row.className = 'chat-msg-row';
   row.setAttribute('data-id', msg.id);
   if (isTemp) row.style.opacity = '0.5';
-  row.innerHTML = `<span class="chat-msg-name${isMe ? ' me' : ''}">${escapeHtml(msg.nombre)}</span><span class="chat-msg-text">${escapeHtml(msg.texto)}</span><span class="chat-msg-time">${time}</span>`;
+  const nameColor = getParticipantColor(msg.nombre);
+  row.innerHTML = `<span class="chat-msg-name" style="color:${nameColor}">${escapeHtml(msg.nombre)}</span><span class="chat-msg-text">${escapeHtml(msg.texto)}</span><span class="chat-msg-time">${time}</span>`;
   container.appendChild(row);
   setTimeout(() => { container.scrollTop = container.scrollHeight; }, 50);
 }
