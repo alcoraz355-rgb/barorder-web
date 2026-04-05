@@ -727,7 +727,12 @@ async function renderReparto() {
     return;
   }
 
+  const SIN_ALCOHOL = ['n1','n2','n3','n4','n5','n6','n7','n8','n9','n10','n11','n12','n13','n14','n15','n16','n17','n18','n19','n20','n21','n22','n23','n24','n25','n26','n27','n32','n33','n34','n35','n36','n37','n38','n39'];
+  let tieneAlcohol = false;
+
   pedidos.forEach((p) => {
+    const base = p.drink_id.split('|')[0];
+    if (!SIN_ALCOHOL.includes(base)) tieneAlcohol = true;
     const label = p.drink_name + (p.marca ? ` ${p.marca}` : '');
     const div = document.createElement('div');
     div.className = 'order-line';
@@ -740,6 +745,9 @@ async function renderReparto() {
     `;
     container.appendChild(div);
   });
+
+  const conducirEl = $('reparto-conducir');
+  if (conducirEl) conducirEl.style.display = tieneAlcohol ? '' : 'none';
 }
 
 // ─── Realtime ─────────────────────────────────────────────────────────────────

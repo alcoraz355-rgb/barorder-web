@@ -380,7 +380,7 @@ button {
   padding: 16px;
 }
 .reparto-card {
-  background: #C8A97E;
+  background: #000;
   border-radius: 20px;
   padding: 20px 16px;
   display: flex;
@@ -389,12 +389,13 @@ button {
 }
 .reparto-header { text-align: center; padding: 8px 0; }
 .reparto-emoji { font-size: 56px; }
-.reparto-title { color: #3B1F00; font-size: 22px; font-weight: 900; margin: 8px 0 4px; }
-.reparto-sub { color: #5C3010; font-size: 15px; }
+.reparto-title { color: var(--gold); font-size: 22px; font-weight: 900; margin: 8px 0 4px; }
+.reparto-sub { color: var(--text-muted); font-size: 15px; }
 
 .order-line {
-  background: #B8864A;
+  background: var(--surface);
   border-radius: 14px;
+  border-left: 3px solid var(--gold);
   padding: 14px;
   display: flex;
   flex-direction: column;
@@ -402,43 +403,26 @@ button {
 }
 .order-line-top { display: flex; align-items: center; gap: 10px; }
 .order-line-emoji { font-size: 26px; }
-.order-line-name { flex: 1; color: #1A0A00; font-size: 17px; font-weight: 800; }
+.order-line-name { flex: 1; color: var(--text); font-size: 17px; font-weight: 800; }
 .order-line-qty {
-  background: #3B1F00;
-  border-radius: 8px;
-  padding: 3px 10px;
   font-size: 15px;
   font-weight: 900;
-  color: #fff;
+  color: #000;
 }
-.order-line-personas { color: #3B1F00; font-size: 13px; line-height: 1.5; }
+.order-line-personas { color: var(--text-muted); font-size: 13px; line-height: 1.5; }
 
-.reparto-divider { text-align: center; font-size: 18px; color: #7A5230; letter-spacing: 4px; margin: 4px 0; }
-
-.reparto-alcoholemia {
-  background: #A07850;
+.reparto-aviso {
+  background: var(--surface);
   border-radius: 14px;
   padding: 14px;
-  color: #1A0A00;
+  color: var(--text);
   font-size: 15px;
+  line-height: 1.5;
   text-align: center;
 }
-.reparto-alcoholemia .alc-title { font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; color: #3B1F00; }
-.reparto-alcoholemia .alc-value { font-size: 28px; font-weight: 900; color: #3B1F00; }
-.reparto-alcoholemia .alc-sub { font-size: 13px; color: #5C3010; margin-top: 4px; }
-
-.reparto-moderacion {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  background: #A07850;
-  border-radius: 14px;
-  padding: 14px;
-  color: #1A0A00;
-  font-size: 14px;
-  line-height: 1.5;
+.reparto-conducir {
+  color: #E87B00;
 }
-.reparto-moderacion-icon { font-size: 22px; flex-shrink: 0; }
 
 /* ── Spinner ─────────────────────────────────────────────────── */
 .spinner {
