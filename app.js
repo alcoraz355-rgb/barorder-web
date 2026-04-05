@@ -826,19 +826,23 @@ function subscribeRealtime() {
     }, async (payload) => {
       const newMesa = payload.new;
       if (!newMesa) return;
-      state.mesa = { ...state.mesa, ...newMesa };
+
+      // Recargar mesa completa desde BD para asegurar todos los campos (ronda, etc.)
+      const { data: mesaFresh } = await sb.from('mesas').select('*').eq('id', state.mesa.id).single();
+      if (mesaFresh) state.mesa = { ...state.mesa, ...mesaFresh };
+      else state.mesa = { ...state.mesa, ...newMesa };
 
       // Actualizar catálogo si cambió
-      if (newMesa.custom_drinks) {
-        state.customDrinks = newMesa.custom_drinks;
+      if (state.mesa.custom_drinks) {
+        state.customDrinks = state.mesa.custom_drinks;
       }
 
-      if (newMesa.estado === 'cerrada') {
+      if (state.mesa.estado === 'cerrada') {
         showClosedByAdmin();
-      } else if (newMesa.estado === 'lanzada') {
+      } else if (state.mesa.estado === 'lanzada') {
         await renderReparto();
         showScreen('reparto');
-      } else if (newMesa.estado === 'abierta') {
+      } else if (state.mesa.estado === 'abierta') {
         renderOrderScreen();
         showScreen('order');
       }
@@ -1007,7 +1011,9 @@ function loadSession(mesaCodigo) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  $('btn-volver-pedido')?.addEventListener('click', () => {
+  $('btn-volver-pedido')?.addEventListener('click', async () => {
+    const { data: mesaFresh } = await sb.from('mesas').select('*').eq('id', state.mesa.id).single();
+    if (mesaFresh) state.mesa = { ...state.mesa, ...mesaFresh };
     renderOrderScreen();
     showScreen('order');
   });
