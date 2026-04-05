@@ -505,6 +505,8 @@ function makeDrinkCard(drink) {
   card.innerHTML = inner;
 
   card.querySelector('.btn-plus')?.addEventListener('click', () => {
+    const searchEl = $('search-input');
+    if (searchEl) searchEl.value = '';
     if (hasOptions) {
       openBrandModal(drink, (selection) => {
         state.quantities[drink.id] = (state.quantities[drink.id] || 0) + 1;
