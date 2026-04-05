@@ -201,15 +201,23 @@ button {
   gap: 8px;
   padding: 8px 10px;
 }
-.section-header {
+.section-header-wrap {
   grid-column: 1 / -1;
+  margin-top: 12px;
+}
+.section-header {
   color: var(--gold);
-  font-size: 12px;
+  font-size: 20px;
   font-weight: 700;
   letter-spacing: 1px;
   text-transform: uppercase;
-  margin-top: 8px;
   padding: 0 2px;
+}
+.section-line {
+  height: 2px;
+  background: #E87B00;
+  border-radius: 1px;
+  margin: 4px 0 8px;
 }
 .drink-card {
   background: var(--card);

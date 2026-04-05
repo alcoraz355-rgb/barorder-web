@@ -477,10 +477,16 @@ function renderDrinks(searchQuery) {
     CATEGORIES.filter((c) => c !== 'Todos').forEach((cat) => {
       const catDrinks = allDrinks.filter((d) => d.category === cat);
       if (!catDrinks.length) return;
+      const headerWrap = document.createElement('div');
+      headerWrap.className = 'section-header-wrap';
       const header = document.createElement('div');
       header.className = 'section-header';
       header.textContent = cat;
-      grid.appendChild(header);
+      const headerLine = document.createElement('div');
+      headerLine.className = 'section-line';
+      headerWrap.appendChild(header);
+      headerWrap.appendChild(headerLine);
+      grid.appendChild(headerWrap);
       catDrinks.forEach((drink) => grid.appendChild(makeDrinkCard(drink)));
     });
   } else {
