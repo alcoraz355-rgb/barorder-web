@@ -442,15 +442,9 @@ function renderOrderScreen() {
   $('btn-eliminar-seleccion').onclick = handleEliminarSeleccion;
 
   // Etiqueta de ronda
-  const ronda = state.mesa.ronda ?? 0;
-  let rondaEl = document.getElementById('order-ronda-badge');
-  if (!rondaEl) {
-    rondaEl = document.createElement('div');
-    rondaEl.id = 'order-ronda-badge';
-    rondaEl.className = 'ronda-badge';
-    $('order-mesa-code').parentNode.appendChild(rondaEl);
-  }
-  rondaEl.textContent = `🔄 Ronda ${ronda}`;
+  const ronda = state.mesa.ronda ?? 1;
+  const rondaTopEl = document.getElementById('order-ronda-badge-top');
+  if (rondaTopEl) rondaTopEl.textContent = `🔄 Ronda ${ronda}`;
 }
 
 function renderCategories() {
@@ -660,7 +654,9 @@ async function handleConfirmar() {
 // ─── Pantalla confirmado ──────────────────────────────────────────────────────
 function renderConfirmed() {
   $('conf-mesa-code').textContent = state.mesa.nombre || state.mesa.codigo;
-  $('conf-user-name').textContent = `Pedido de ${state.nombre} · Ronda ${state.mesa.ronda ?? 0}`;
+  $('conf-user-name').textContent = `Pedido de ${state.nombre}`;
+  const confRonda = document.getElementById('conf-ronda-badge');
+  if (confRonda) confRonda.textContent = `🔄 Ronda ${state.mesa.ronda ?? 1}`;
 
   const allDrinks = getAllDrinks();
   const list = $('confirmed-drinks-list');
