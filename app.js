@@ -665,16 +665,17 @@ function renderConfirmed() {
   const card = document.createElement('div');
   card.className = 'confirmed-drinks-card';
   const titleRow = document.createElement('div');
-  titleRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:12px';
+  titleRow.style.cssText = 'display:flex;flex-direction:column;margin-bottom:12px;gap:4px';
   const title = document.createElement('div');
   title.className = 'confirmed-drinks-title';
   title.style.marginBottom = '0';
   title.textContent = 'MI PEDIDO';
-  const rondaTag = document.createElement('div');
-  rondaTag.className = 'ronda-tag-brown';
-  rondaTag.textContent = `Ronda nº ${state.mesa.ronda ?? 1}`;
+  const rondaTitle = document.createElement('div');
+  rondaTitle.className = 'confirmed-drinks-title';
+  rondaTitle.style.marginBottom = '0';
+  rondaTitle.textContent = `RONDA Nº ${state.mesa.ronda ?? 1}`;
   titleRow.appendChild(title);
-  titleRow.appendChild(rondaTag);
+  titleRow.appendChild(rondaTitle);
   card.appendChild(titleRow);
 
   Object.entries(state.quantities).forEach(([drinkId, qty]) => {
@@ -717,12 +718,10 @@ function renderConfirmed() {
     const drink = allDrinks.find((d) => d.id === base);
     if (drink) total += (drink.price || 0) * qty;
   });
-  if (total > 0) {
-    const totalEl = document.createElement('div');
-    totalEl.className = 'confirmed-total';
-    totalEl.textContent = `Coste aproximado: ${total.toFixed(2)} €`;
-    card.appendChild(totalEl);
-  }
+  const totalEl = document.createElement('div');
+  totalEl.className = 'confirmed-total';
+  totalEl.textContent = `Coste aproximado: ${total.toFixed(2)} €`;
+  card.appendChild(totalEl);
 
   list.appendChild(card);
 
