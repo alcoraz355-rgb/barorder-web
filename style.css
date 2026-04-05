@@ -398,6 +398,18 @@ button {
   gap: 8px;
 }
 
+.fab-btns-row {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+}
+.fab-btns-row .btn-primary,
+.fab-btns-row .btn-danger-outline {
+  flex: 1;
+  font-size: 13px;
+  padding: 12px 6px;
+}
+
 /* ── Confirmed state ─────────────────────────────────────────── */
 .confirmed-banner {
   margin: 24px 16px 0;
