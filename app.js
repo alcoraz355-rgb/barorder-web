@@ -435,10 +435,22 @@ function renderOrderScreen() {
   renderCategories();
   renderDrinks();
 
-  $('btn-confirmar').disabled = false;
+  const lanzada = state.mesa.estado === 'lanzada';
+  $('btn-confirmar').disabled = lanzada;
   $('btn-confirmar').textContent = '✓  Confirmar pedido';
   $('btn-confirmar').onclick = handleConfirmar;
   $('btn-eliminar-seleccion').onclick = handleEliminarSeleccion;
+
+  // Etiqueta de ronda
+  const ronda = state.mesa.ronda ?? 0;
+  let rondaEl = document.getElementById('order-ronda-badge');
+  if (!rondaEl) {
+    rondaEl = document.createElement('div');
+    rondaEl.id = 'order-ronda-badge';
+    rondaEl.className = 'ronda-badge';
+    $('order-mesa-code').parentNode.appendChild(rondaEl);
+  }
+  rondaEl.textContent = `🔄 Ronda ${ronda}`;
 }
 
 function renderCategories() {
@@ -648,7 +660,7 @@ async function handleConfirmar() {
 // ─── Pantalla confirmado ──────────────────────────────────────────────────────
 function renderConfirmed() {
   $('conf-mesa-code').textContent = state.mesa.nombre || state.mesa.codigo;
-  $('conf-user-name').textContent = `Pedido de ${state.nombre}`;
+  $('conf-user-name').textContent = `Pedido de ${state.nombre} · Ronda ${state.mesa.ronda ?? 0}`;
 
   const allDrinks = getAllDrinks();
   const list = $('confirmed-drinks-list');
@@ -835,6 +847,11 @@ function subscribeRealtime() {
       if (payload.new?.custom_drinks) {
         state.customDrinks = payload.new.custom_drinks;
         renderDrinks($('search-input')?.value?.trim()?.toLowerCase() || '');
+      }
+      if (payload.new?.ronda !== undefined) {
+        state.mesa.ronda = payload.new.ronda;
+        state.mesa.estado = payload.new.estado || state.mesa.estado;
+        renderOrderScreen();
       }
     })
     .subscribe();

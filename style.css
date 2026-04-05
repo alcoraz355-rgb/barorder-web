@@ -169,6 +169,16 @@ button {
   border: 1px solid #CC3333;
   cursor: pointer;
 }
+.ronda-badge {
+  background: #00BCD4;
+  color: #000;
+  font-size: 13px;
+  font-weight: 800;
+  border-radius: 10px;
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+
 .btn-orange-outline {
   width: 100%;
   background: transparent;
