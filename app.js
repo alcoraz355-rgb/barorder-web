@@ -665,14 +665,13 @@ function renderConfirmed() {
   const card = document.createElement('div');
   card.className = 'confirmed-drinks-card';
   const titleRow = document.createElement('div');
-  titleRow.style.cssText = 'display:flex;flex-direction:column;margin-bottom:12px;gap:4px';
+  titleRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:12px';
   const title = document.createElement('div');
   title.className = 'confirmed-drinks-title';
   title.style.marginBottom = '0';
   title.textContent = 'MI PEDIDO';
   const rondaTitle = document.createElement('div');
-  rondaTitle.className = 'confirmed-drinks-title';
-  rondaTitle.style.marginBottom = '0';
+  rondaTitle.className = 'confirmed-ronda';
   rondaTitle.textContent = `RONDA Nº ${state.mesa.ronda ?? 1}`;
   titleRow.appendChild(title);
   titleRow.appendChild(rondaTitle);
@@ -804,12 +803,10 @@ async function renderReparto() {
     const drink = allDrinks.find((d) => d.id === base);
     total += (drink?.price || 0) * p.cantidad;
   });
-  if (total > 0) {
-    const totalEl = document.createElement('div');
-    totalEl.className = 'reparto-total';
-    totalEl.textContent = `Coste aproximado: ${total.toFixed(2)} €`;
-    container.appendChild(totalEl);
-  }
+  const totalEl = document.createElement('div');
+  totalEl.className = 'reparto-total';
+  totalEl.textContent = `Coste aproximado: ${total.toFixed(2)} €`;
+  container.appendChild(totalEl);
 
   const conducirEl = $('reparto-conducir');
   if (conducirEl) conducirEl.style.display = tieneAlcohol ? '' : 'none';

@@ -416,9 +416,16 @@ button {
   text-transform: uppercase;
   margin-bottom: 12px;
 }
+.confirmed-ronda {
+  color: #00BCD4;
+  font-size: 17px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
 .confirmed-total {
   color: #3B2A1A;
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 700;
   margin-top: 14px;
   padding-top: 12px;
@@ -466,7 +473,7 @@ button {
 }
 .reparto-header { text-align: center; padding: 8px 0; }
 .reparto-emoji { font-size: 56px; }
-.reparto-title { color: #3B1F00; font-size: 28px; font-weight: 900; margin: 8px 0 4px; }
+.reparto-title { color: #3B1F00; font-size: 24px; font-weight: 900; margin: 8px 0 4px; }
 .reparto-sub { color: #5C3010; font-size: 15px; }
 .reparto-total { color: #3B1F00; font-size: 16px; font-weight: 800; background: #B8864A; border-radius: 14px; padding: 14px; text-align: right; margin-top: 4px; }
 
