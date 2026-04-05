@@ -209,6 +209,7 @@ const state = {
   quantities:       {},   // { baseId: number }
   brandSelections:  {},   // { baseId: string[] } — una selección por unidad
   customDrinks:     [],
+  prices:           {},   // { drinkId: number } — precios del admin
   selectedCategory: 'Todos',
   channel:          null,
   chatChannel:      null,
@@ -340,6 +341,7 @@ async function init() {
     mesa = data;
     state.mesa = mesa;
     state.customDrinks = mesa.custom_drinks || [];
+    state.prices = mesa.custom_prices || {};
   } catch {
     showScreen('closed');
     $('screen-closed').querySelector('.closed-title').textContent = 'Mesa no encontrada';
@@ -505,8 +507,10 @@ function makeDrinkCard(drink) {
   card.className = 'drink-card' + (active ? ' active' : '');
   card.id = `card-${drink.id}`;
 
+  const price = state.prices[drink.id];
   let inner = '';
   if (active) inner += `<div class="qty-badge">${qty}</div>`;
+  if (price != null) inner += `<div class="price-badge">${price % 1 === 0 ? price + ',00' : String(price).replace('.', ',')}€</div>`;
   inner += `<div class="drink-emoji">${drink.emoji}</div>`;
   inner += `<div class="drink-name">${drink.name}</div>`;
   inner += `<div class="drink-controls">`;
@@ -790,6 +794,10 @@ function subscribeRealtime() {
     }, (payload) => {
       if (payload.new?.custom_drinks) {
         state.customDrinks = payload.new.custom_drinks;
+      }
+      if (payload.new?.custom_prices) {
+        state.prices = payload.new.custom_prices;
+        renderDrinks($('search-input')?.value?.trim()?.toLowerCase() || '');
       }
     })
     .subscribe();
