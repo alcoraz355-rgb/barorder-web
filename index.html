@@ -78,13 +78,21 @@
     <div class="top-bar">
       <div class="logo-title"><span>🍻</span><h1>BarOrder</h1></div>
     </div>
-    <div class="reparto-container">
-      <div class="reparto-header">
-        <div class="reparto-emoji">🍻</div>
-        <div class="reparto-title">¡La orden está en camino!</div>
-        <p class="reparto-sub">Ayuda a repartir cuando llegue</p>
+    <div class="reparto-scroll">
+      <div class="reparto-card">
+        <div class="reparto-header">
+          <div class="reparto-emoji">🍻</div>
+          <div class="reparto-title">¡La orden está en camino!</div>
+          <p class="reparto-sub">Tu pedido de esta ronda</p>
+        </div>
+        <div id="reparto-lines"></div>
+        <div class="reparto-divider">🍹 ✦ 🍷 ✦ 🍺 ✦ 🍹</div>
+        <div id="reparto-alcoholemia"></div>
+        <div class="reparto-moderacion">
+          <span class="reparto-moderacion-icon">⚠️</span>
+          <span><strong>Bebe con moderación.</strong> El alcohol puede afectar tu conducción.<br>Si bebes, no conduzcas.</span>
+        </div>
       </div>
-      <div id="reparto-lines"></div>
     </div>
     <div class="fab-area">
       <button class="btn-secondary" id="btn-volver-pedido">← Volver a mi pedido</button>

@@ -711,6 +711,30 @@ async function handleBorrar() {
 }
 
 // ─── Vista de reparto ─────────────────────────────────────────────────────────
+// gramos de alcohol puro por unidad de cada bebida (aprox)
+const ALCOHOL_GRAMS = {
+  c1: 10, c2: 0, c3: 5, c4: 20, c5: 0, c6: 14, c7: 12, c8: 12, c9: 4,
+  v1: 14, v2: 14, v3: 12, v4: 10, v5: 10, v6: 12, v7: 12, v8: 12, v9: 10, v10: 10,
+  k1: 20, k2: 20, k3: 18, k4: 18, k5: 18, k6: 12, k7: 22, k8: 18, k9: 8, k10: 8,
+  k11: 16, k12: 18, k13: 20, k14: 18, k15: 18, k16: 24, k17: 20,
+  s1: 24, s2: 22, s3: 22, s4: 22, s5: 22, s6: 18, s7: 12,
+  l1: 14, l2: 16, l3: 14, l4: 12, l5: 16, l6: 14, l7: 14, l8: 14,
+};
+
+function calcAlcoholemia(pedidos) {
+  let totalGramos = 0;
+  pedidos.forEach((p) => {
+    const base = p.drink_id.split('|')[0];
+    const gramos = (ALCOHOL_GRAMS[base] || 0) * p.cantidad;
+    totalGramos += gramos;
+  });
+  if (totalGramos === 0) return null;
+  // Fórmula Widmark simplificada: BAC = gramos / (peso * r * 10)
+  // Usamos peso medio 70kg hombre r=0.7 → orientativo
+  const bac = totalGramos / (70 * 0.7 * 10);
+  return bac;
+}
+
 async function renderReparto() {
   const { data: pedidos } = await sb
     .from('pedidos')
@@ -723,23 +747,42 @@ async function renderReparto() {
   container.innerHTML = '';
 
   if (!pedidos || pedidos.length === 0) {
-    container.innerHTML = '<div style="color:#888;text-align:center;margin-top:20px">No tienes pedidos confirmados</div>';
-    return;
+    container.innerHTML = '<div style="color:#5C3010;text-align:center;margin-top:20px">No tienes pedidos confirmados</div>';
+  } else {
+    pedidos.forEach((p) => {
+      const label = p.drink_name + (p.marca ? ` ${p.marca}` : '');
+      const div = document.createElement('div');
+      div.className = 'order-line';
+      div.innerHTML = `
+        <div class="order-line-top">
+          <span class="order-line-emoji">${p.drink_emoji}</span>
+          <span class="order-line-name">${label}</span>
+          <span class="order-line-qty">×${p.cantidad}</span>
+        </div>
+      `;
+      container.appendChild(div);
+    });
   }
 
-  pedidos.forEach((p) => {
-    const label = p.drink_name + (p.marca ? ` ${p.marca}` : '');
-    const div = document.createElement('div');
-    div.className = 'order-line';
-    div.innerHTML = `
-      <div class="order-line-top">
-        <span class="order-line-emoji">${p.drink_emoji}</span>
-        <span class="order-line-name">${label}</span>
-        <span class="order-line-qty">×${p.cantidad}</span>
-      </div>
+  // Alcoholemia estimada
+  const alcEl = $('reparto-alcoholemia');
+  const bac = calcAlcoholemia(pedidos || []);
+  if (!bac) {
+    alcEl.style.display = 'none';
+  } else {
+    alcEl.style.display = '';
+    const bacStr = bac.toFixed(2);
+    let nivel = '', color = '';
+    if (bac < 0.3) { nivel = 'Bajo'; color = '#27AE60'; }
+    else if (bac < 0.5) { nivel = 'Moderado'; color = '#E67E22'; }
+    else { nivel = 'Alto — No conduzcas 🚫'; color = '#C0392B'; }
+    alcEl.innerHTML = `
+      <div class="alc-title">🍸 Alcoholemia estimada</div>
+      <div class="alc-value" style="color:${color}">${bacStr} g/L</div>
+      <div class="alc-sub">Nivel: <strong style="color:${color}">${nivel}</strong></div>
+      <div class="alc-sub" style="margin-top:6px;font-size:12px">* Estimación orientativa basada en 70kg. No sustituye a un alcoholímetro.</div>
     `;
-    container.appendChild(div);
-  });
+  }
 }
 
 // ─── Realtime ─────────────────────────────────────────────────────────────────
