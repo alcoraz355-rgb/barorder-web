@@ -774,42 +774,42 @@ async function renderReparto() {
   const container = $('reparto-lines');
   container.innerHTML = '';
 
-  if (!pedidos || !pedidos.length) return;
-
   const SIN_ALCOHOL = ['n1','n2','n3','n4','n5','n6','n7','n8','n9','n10','n11','n12','n13','n14','n15','n16','n17','n18','n19','n20','n21','n22','n23','n24','n25','n26','n27','n32','n33','n34','n35','n36','n37','n38','n39'];
   let tieneAlcohol = false;
 
-  pedidos.forEach((p) => {
-    const base = p.drink_id.split('|')[0];
-    if (!SIN_ALCOHOL.includes(base)) tieneAlcohol = true;
-    const label = p.drink_name + (p.marca ? ` ${p.marca}` : '');
-    const div = document.createElement('div');
-    div.className = 'order-line';
-    div.innerHTML = `
-      <div class="order-line-top">
-        <span class="order-line-emoji">${p.drink_emoji}</span>
-        <span class="order-line-name">${label}</span>
-        <span class="order-line-qty">×${p.cantidad}</span>
-      </div>
-    `;
-    container.appendChild(div);
-  });
+  if (pedidos && pedidos.length) {
+    pedidos.forEach((p) => {
+      const base = p.drink_id.split('|')[0];
+      if (!SIN_ALCOHOL.includes(base)) tieneAlcohol = true;
+      const label = p.drink_name + (p.marca ? ` ${p.marca}` : '');
+      const div = document.createElement('div');
+      div.className = 'order-line';
+      div.innerHTML = `
+        <div class="order-line-top">
+          <span class="order-line-emoji">${p.drink_emoji}</span>
+          <span class="order-line-name">${label}</span>
+          <span class="order-line-qty">×${p.cantidad}</span>
+        </div>
+      `;
+      container.appendChild(div);
+    });
 
-  // Coste aproximado
-  const allDrinks = getAllDrinks();
-  let total = 0;
-  pedidos.forEach((p) => {
-    const base = p.drink_id.split('|')[0];
-    const drink = allDrinks.find((d) => d.id === base);
-    total += (drink?.price || 0) * p.cantidad;
-  });
-  const totalEl = document.createElement('div');
-  totalEl.className = 'reparto-total';
-  totalEl.textContent = `Coste aproximado: ${total.toFixed(2)} €`;
-  container.appendChild(totalEl);
+    // Coste aproximado
+    const allDrinks = getAllDrinks();
+    let total = 0;
+    pedidos.forEach((p) => {
+      const base = p.drink_id.split('|')[0];
+      const drink = allDrinks.find((d) => d.id === base);
+      total += (drink?.price || 0) * p.cantidad;
+    });
+    const totalEl = document.createElement('div');
+    totalEl.className = 'reparto-total';
+    totalEl.textContent = `Coste aproximado: ${total.toFixed(2)} €`;
+    container.appendChild(totalEl);
+  }
 
   const conducirEl = $('reparto-conducir');
-  if (conducirEl) conducirEl.style.display = tieneAlcohol ? '' : 'none';
+  if (conducirEl) conducirEl.style.display = '';
 }
 
 // ─── Realtime ─────────────────────────────────────────────────────────────────
@@ -828,6 +828,11 @@ function subscribeRealtime() {
       if (!newMesa) return;
       state.mesa = { ...state.mesa, ...newMesa };
 
+      // Actualizar catálogo si cambió
+      if (newMesa.custom_drinks) {
+        state.customDrinks = newMesa.custom_drinks;
+      }
+
       if (newMesa.estado === 'cerrada') {
         showClosedByAdmin();
       } else if (newMesa.estado === 'lanzada') {
@@ -836,20 +841,6 @@ function subscribeRealtime() {
       } else if (newMesa.estado === 'abierta') {
         renderOrderScreen();
         showScreen('order');
-      }
-    })
-    .on('postgres_changes', {
-      event: 'UPDATE', schema: 'public', table: 'mesas',
-      filter: `id=eq.${state.mesa.id}`,
-    }, (payload) => {
-      if (payload.new?.custom_drinks) {
-        state.customDrinks = payload.new.custom_drinks;
-        renderDrinks($('search-input')?.value?.trim()?.toLowerCase() || '');
-      }
-      if (payload.new?.ronda !== undefined) {
-        state.mesa.ronda = payload.new.ronda;
-        state.mesa.estado = payload.new.estado || state.mesa.estado;
-        renderOrderScreen();
       }
     })
     .subscribe();
