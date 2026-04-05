@@ -664,10 +664,18 @@ function renderConfirmed() {
 
   const card = document.createElement('div');
   card.className = 'confirmed-drinks-card';
+  const titleRow = document.createElement('div');
+  titleRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:12px';
   const title = document.createElement('div');
   title.className = 'confirmed-drinks-title';
+  title.style.marginBottom = '0';
   title.textContent = 'MI PEDIDO';
-  card.appendChild(title);
+  const rondaTag = document.createElement('div');
+  rondaTag.className = 'ronda-tag-brown';
+  rondaTag.textContent = `Ronda nº ${state.mesa.ronda ?? 1}`;
+  titleRow.appendChild(title);
+  titleRow.appendChild(rondaTag);
+  card.appendChild(titleRow);
 
   Object.entries(state.quantities).forEach(([drinkId, qty]) => {
     const drink = allDrinks.find((d) => d.id === drinkId);
@@ -755,6 +763,9 @@ function handleEliminarSeleccion() {
 
 // ─── Vista de reparto ─────────────────────────────────────────────────────────
 async function renderReparto() {
+  const rondaTagEl = document.getElementById('reparto-ronda-tag');
+  if (rondaTagEl) rondaTagEl.textContent = `Ronda nº ${state.mesa.ronda ?? 1}`;
+
   const { data: pedidos } = await sb
     .from('pedidos')
     .select('*, miembros(nombre)')
