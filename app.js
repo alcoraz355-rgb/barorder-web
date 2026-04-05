@@ -507,10 +507,13 @@ function makeDrinkCard(drink) {
   card.className = 'drink-card' + (active ? ' active' : '');
   card.id = `card-${drink.id}`;
 
-  const price = state.prices[drink.id];
+  const price = state.prices[drink.id] ?? 0;
+  function fmtPrice(p) {
+    return Number.isInteger(p) ? p + ',00' : p.toFixed(2).replace('.', ',');
+  }
   let inner = '';
   if (active) inner += `<div class="qty-badge">${qty}</div>`;
-  if (price != null) inner += `<div class="price-badge">${price % 1 === 0 ? price + ',00' : String(price).replace('.', ',')}€</div>`;
+  inner += `<div class="price-badge">${fmtPrice(price)}€</div>`;
   inner += `<div class="drink-emoji">${drink.emoji}</div>`;
   inner += `<div class="drink-name">${drink.name}</div>`;
   inner += `<div class="drink-controls">`;
