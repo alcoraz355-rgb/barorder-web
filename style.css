@@ -39,6 +39,9 @@ html, body {
 .screen { display: none; flex-direction: column; min-height: 100dvh; }
 .screen.active { display: flex; }
 
+#screen-order { height: 100dvh; overflow: hidden; }
+.order-sticky-header { flex-shrink: 0; background: var(--bg); }
+
 /* ── Header ─────────────────────────────────────────────────── */
 .top-bar {
   display: flex;
@@ -252,7 +255,9 @@ button {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
-  padding: 8px 10px;
+  padding: 8px 10px 140px;
+  flex: 1;
+  overflow-y: auto;
 }
 .section-header-wrap {
   grid-column: 1 / -1;
