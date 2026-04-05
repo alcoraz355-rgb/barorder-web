@@ -244,9 +244,8 @@ function showClosedByAdmin() {
 }
 
 function getAllDrinks() {
-  // Mezclar bebidas del catálogo + personalizadas del admin
-  const customs = (state.customDrinks || []).map((d) => ({ ...d, isCustom: true }));
-  return [...DRINKS, ...customs];
+  // Si el admin ha subido su catálogo, usarlo; si no, fallback al catálogo base
+  return (state.customDrinks && state.customDrinks.length > 0) ? state.customDrinks : DRINKS;
 }
 
 // ─── Modal de selección de marca/región ───────────────────────────────────────
@@ -507,10 +506,8 @@ function makeDrinkCard(drink) {
   card.className = 'drink-card' + (active ? ' active' : '');
   card.id = `card-${drink.id}`;
 
-  const price = state.prices[drink.id] ?? 0;
-  function fmtPrice(p) {
-    return Number.isInteger(p) ? p + ',00' : p.toFixed(2).replace('.', ',');
-  }
+  const price = drink.price ?? 0;
+  function fmtPrice(p) { return Number.isInteger(p) ? p + ',00' : Number(p).toFixed(2).replace('.', ','); }
   let inner = '';
   if (active) inner += `<div class="qty-badge">${qty}</div>`;
   inner += `<div class="price-badge">${fmtPrice(price)}€</div>`;
@@ -797,9 +794,6 @@ function subscribeRealtime() {
     }, (payload) => {
       if (payload.new?.custom_drinks) {
         state.customDrinks = payload.new.custom_drinks;
-      }
-      if (payload.new?.custom_prices) {
-        state.prices = payload.new.custom_prices;
         renderDrinks($('search-input')?.value?.trim()?.toLowerCase() || '');
       }
     })

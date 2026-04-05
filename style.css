@@ -524,16 +524,27 @@ button {
   flex-shrink: 0;
   background: #D4A96A;
 }
-.chat-title { color: #3B1F00; font-size: 17px; font-weight: 800; }
+.chat-title { color: #3B1F00; font-size: 17px; font-weight: 800; flex: 1; }
 .chat-close-btn {
-  width: 44px; height: 44px;
-  border-radius: 50%;
-  background: #C49050;
-  color: #3B1F00;
-  font-size: 20px; font-weight: 800;
-  display: flex; align-items: center; justify-content: center;
-  border: 1px solid #B8864A;
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: #B8864A;
+  border: 1px solid #A0703A;
+  color: #1A0A00;
+  font-size: 14px; font-weight: 800;
+  cursor: pointer;
   flex-shrink: 0;
+}
+.chat-close-full-btn {
+  width: calc(100% - 20px);
+  margin: 4px 10px 10px;
+  padding: 12px;
+  border-radius: 12px;
+  background: #B8864A;
+  color: #1A0A00;
+  font-size: 16px; font-weight: 800;
+  border: none;
+  cursor: pointer;
 }
 
 .chat-messages {
