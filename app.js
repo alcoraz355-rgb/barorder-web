@@ -930,6 +930,27 @@ document.addEventListener('DOMContentLoaded', () => {
     showScreen('order');
   });
 
+  // ── Buscador ─────────────────────────────────────────────────────────────
+  $('search-input')?.addEventListener('input', (e) => {
+    const query = e.target.value.trim().toLowerCase();
+    if (!query) return;
+    const allDrinks = getAllDrinks();
+    const found = allDrinks.find((d) => d.name.toLowerCase().includes(query));
+    if (!found) return;
+    // Si hay filtro de categoría activo y no coincide, cambiar a Todos
+    if (state.selectedCategory !== 'Todos' && found.category !== state.selectedCategory) {
+      state.selectedCategory = 'Todos';
+      renderCategories();
+      renderDrinks();
+    }
+    const card = document.getElementById(`card-${found.id}`);
+    if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  });
+
+  $('search-input')?.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') e.target.blur();
+  });
+
   // Ajustar chat al teclado en iOS
   if (window.visualViewport) {
     window.visualViewport.addEventListener('resize', () => {
