@@ -169,6 +169,21 @@ button {
   border: 1px solid #CC3333;
   cursor: pointer;
 }
+.btn-orange-outline {
+  width: 100%;
+  background: transparent;
+  color: #E87B00;
+  font-size: 15px;
+  font-weight: 700;
+  border-radius: 12px;
+  padding: 12px;
+  border: 1px solid #E87B00;
+  cursor: pointer;
+}
+.btn-orange-outline:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
 
 .btn-icon {
   background: var(--card);
@@ -376,7 +391,7 @@ button {
 }
 .confirmed-drinks-title {
   color: #3B2A1A;
-  font-size: 20px;
+  font-size: 15px;
   font-weight: 800;
   letter-spacing: 2px;
   text-transform: uppercase;

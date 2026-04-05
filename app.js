@@ -434,9 +434,18 @@ function renderOrderScreen() {
   $('order-mesa-code').textContent = state.mesa.nombre || state.mesa.codigo;
   renderCategories();
   renderDrinks();
-  $('btn-confirmar').disabled = false;
-  $('btn-confirmar').textContent = '✓  Confirmar pedido';
+
+  const lanzada = state.mesa.estado === 'lanzada';
+
+  // Nuevo Pedido — solo activo cuando la mesa está lanzada
+  $('btn-confirmar').disabled = !lanzada;
+  $('btn-confirmar').textContent = '✓  Nuevo Pedido';
   $('btn-confirmar').onclick = handleConfirmar;
+
+  // Modificar Pedido — activo mientras la mesa NO está lanzada
+  $('btn-modificar-pedido').disabled = lanzada;
+  $('btn-modificar-pedido').onclick = handleConfirmar;
+
   $('btn-eliminar-seleccion').onclick = handleEliminarSeleccion;
 }
 
@@ -696,7 +705,8 @@ function renderConfirmed() {
   // Total aproximado
   let total = 0;
   Object.entries(state.quantities).forEach(([drinkId, qty]) => {
-    const drink = allDrinks.find((d) => d.id === drinkId);
+    const base = drinkId.split('|')[0];
+    const drink = allDrinks.find((d) => d.id === base);
     if (drink) total += (drink.price || 0) * qty;
   });
   if (total > 0) {
