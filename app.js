@@ -764,7 +764,7 @@ function handleEliminarSeleccion() {
 // ─── Vista de reparto ─────────────────────────────────────────────────────────
 async function renderReparto() {
   const rondaTagEl = document.getElementById('reparto-ronda-tag');
-  if (rondaTagEl) rondaTagEl.textContent = `Ronda nº ${state.mesa.ronda ?? 1}`;
+  if (rondaTagEl) rondaTagEl.textContent = `RONDA Nº ${state.mesa.ronda ?? 1}`;
 
   const { data: pedidos } = await sb
     .from('pedidos')
@@ -776,10 +776,7 @@ async function renderReparto() {
   const container = $('reparto-lines');
   container.innerHTML = '';
 
-  if (!pedidos || !pedidos.length) {
-    container.innerHTML = '<div style="color:var(--text-muted);text-align:center;margin-top:20px">No tienes pedidos confirmados</div>';
-    return;
-  }
+  if (!pedidos || !pedidos.length) return;
 
   const SIN_ALCOHOL = ['n1','n2','n3','n4','n5','n6','n7','n8','n9','n10','n11','n12','n13','n14','n15','n16','n17','n18','n19','n20','n21','n22','n23','n24','n25','n26','n27','n32','n33','n34','n35','n36','n37','n38','n39'];
   let tieneAlcohol = false;
@@ -841,8 +838,6 @@ function subscribeRealtime() {
         await renderReparto();
         showScreen('reparto');
       } else if (newMesa.estado === 'abierta') {
-        state.quantities = {};
-        state.brandSelections = {};
         renderOrderScreen();
         showScreen('order');
       }
