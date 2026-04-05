@@ -437,6 +437,7 @@ function renderOrderScreen() {
   $('btn-confirmar').disabled = false;
   $('btn-confirmar').textContent = '✓  Confirmar pedido';
   $('btn-confirmar').onclick = handleConfirmar;
+  $('btn-eliminar-seleccion').onclick = handleEliminarSeleccion;
 }
 
 function renderCategories() {
@@ -635,6 +636,7 @@ async function handleConfirmar() {
 
     renderConfirmed();
     showScreen('confirmed');
+    window.scrollTo(0, 0);
   } catch (e) {
     alert('Error al confirmar: ' + e.message);
     $('btn-confirmar').disabled = false;
@@ -691,6 +693,19 @@ function renderConfirmed() {
     }
   });
 
+  // Total aproximado
+  let total = 0;
+  Object.entries(state.quantities).forEach(([drinkId, qty]) => {
+    const drink = allDrinks.find((d) => d.id === drinkId);
+    if (drink) total += (drink.price || 0) * qty;
+  });
+  if (total > 0) {
+    const totalEl = document.createElement('div');
+    totalEl.className = 'confirmed-total';
+    totalEl.textContent = `Coste aproximado: ${total.toFixed(2)} €`;
+    card.appendChild(totalEl);
+  }
+
   list.appendChild(card);
 
   $('btn-modificar').onclick = handleModificar;
@@ -714,6 +729,14 @@ async function handleBorrar() {
     .eq('miembro_id', state.miembro.id)
     .eq('mesa_id', state.mesa.id);
 
+  state.quantities = {};
+  state.brandSelections = {};
+  renderOrderScreen();
+  showScreen('order');
+}
+
+function handleEliminarSeleccion() {
+  if (!confirm('¿Seguro que quieres eliminar toda tu selección actual?')) return;
   state.quantities = {};
   state.brandSelections = {};
   renderOrderScreen();
@@ -755,6 +778,21 @@ async function renderReparto() {
     `;
     container.appendChild(div);
   });
+
+  // Coste aproximado
+  const allDrinks = getAllDrinks();
+  let total = 0;
+  pedidos.forEach((p) => {
+    const base = p.drink_id.split('|')[0];
+    const drink = allDrinks.find((d) => d.id === base);
+    total += (drink?.price || 0) * p.cantidad;
+  });
+  if (total > 0) {
+    const totalEl = document.createElement('div');
+    totalEl.className = 'reparto-total';
+    totalEl.textContent = `Coste aproximado: ${total.toFixed(2)} €`;
+    container.appendChild(totalEl);
+  }
 
   const conducirEl = $('reparto-conducir');
   if (conducirEl) conducirEl.style.display = tieneAlcohol ? '' : 'none';
