@@ -435,17 +435,9 @@ function renderOrderScreen() {
   renderCategories();
   renderDrinks();
 
-  const lanzada = state.mesa.estado === 'lanzada';
-
-  // Nuevo Pedido — solo activo cuando la mesa está lanzada, limpia y va al order screen
-  $('btn-confirmar').disabled = !lanzada;
-  $('btn-confirmar').textContent = '✓  Nuevo Pedido';
+  $('btn-confirmar').disabled = false;
+  $('btn-confirmar').textContent = '✓  Confirmar pedido';
   $('btn-confirmar').onclick = handleConfirmar;
-
-  // Modificar Pedido — activo mientras la mesa NO está lanzada, envía el pedido
-  $('btn-modificar-pedido').disabled = lanzada;
-  $('btn-modificar-pedido').onclick = handleConfirmar;
-
   $('btn-eliminar-seleccion').onclick = handleEliminarSeleccion;
 }
 
