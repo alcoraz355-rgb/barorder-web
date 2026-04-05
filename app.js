@@ -440,10 +440,7 @@ function renderOrderScreen() {
   // Nuevo Pedido — solo activo cuando la mesa está lanzada, limpia y va al order screen
   $('btn-confirmar').disabled = !lanzada;
   $('btn-confirmar').textContent = '✓  Nuevo Pedido';
-  $('btn-confirmar').onclick = () => {
-    renderOrderScreen();
-    showScreen('order');
-  };
+  $('btn-confirmar').onclick = handleConfirmar;
 
   // Modificar Pedido — activo mientras la mesa NO está lanzada, envía el pedido
   $('btn-modificar-pedido').disabled = lanzada;
