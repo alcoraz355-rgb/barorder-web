@@ -462,10 +462,6 @@ function renderCategories() {
     el.appendChild(pill);
   });
 
-  const nota = document.createElement('span');
-  nota.className = 'cat-price-note';
-  nota.textContent = '* precios orientativos';
-  el.appendChild(nota);
 }
 
 function renderDrinks(searchQuery) {

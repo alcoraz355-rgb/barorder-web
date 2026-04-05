@@ -239,13 +239,11 @@ button {
   color: #000;
   font-weight: 800;
 }
-.cat-price-note {
-  margin-left: auto;
-  align-self: center;
-  flex-shrink: 0;
+.price-disclaimer {
+  margin: 4px 0 0;
   font-size: 11px;
   color: var(--gold);
-  white-space: nowrap;
+  text-align: center;
   opacity: 0.8;
 }
 
