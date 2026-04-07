@@ -445,6 +445,19 @@ function renderOrderScreen() {
   const ronda = state.mesa.ronda ?? 1;
   const rondaTopEl = document.getElementById('order-ronda-badge-top');
   if (rondaTopEl) rondaTopEl.textContent = `🔄 Ronda ${ronda}`;
+
+  // Nombre del pagador de esta ronda
+  const pagadorEl = document.getElementById('order-pagador-badge');
+  if (pagadorEl) {
+    sb.from('miembros').select('nombre').eq('mesa_id', state.mesa.id).order('created_at', { ascending: true })
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          const pagador = data[(ronda - 1) % data.length];
+          pagadorEl.textContent = `Paga: ${pagador.nombre}`;
+          pagadorEl.style.display = 'block';
+        }
+      });
+  }
 }
 
 function renderCategories() {
