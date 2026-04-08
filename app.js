@@ -413,13 +413,10 @@ async function handleJoin() {
   $('btn-join').textContent = '...';
 
   try {
-    // Comprobar que el nombre no existe ya en el grupo
-    const { data: existing } = await sb
-      .from('miembros')
-      .select('id')
-      .eq('mesa_id', state.mesa.id)
-      .ilike('nombre', nombre);
-    if (existing && existing.length > 0) {
+    // Comprobar que el nombre no existe ya en el grupo (activo o salido)
+    const { data: existing } = await sb.from('miembros').select('nombre').eq('mesa_id', state.mesa.id);
+    const nombresBloqueados = (existing || []).map((m) => m.nombre.replace(/^\[SALIDO\] /, '').toLowerCase());
+    if (nombresBloqueados.includes(nombre.toLowerCase())) {
       $('btn-join').disabled = false;
       $('btn-join').textContent = 'Entrar a la mesa →';
       alert(`El nombre "${nombre}" ya está en uso en este grupo. Elige otro nombre.`);
@@ -505,11 +502,9 @@ function renderHomeScreen() {
       // Desuscribir canales primero para evitar interferencias
       if (state.channel) { state.channel.unsubscribe(); state.channel = null; }
       if (state.chatChannel) { state.chatChannel.unsubscribe(); state.chatChannel = null; }
-      // Borrar miembro de Supabase (pedidos quedan guardados) y notificar al admin tocando la mesa
+      // Marcar miembro como salido (preserva pedidos y datos de rondas)
       if (state.miembro?.id) {
-        await sb.from('miembros').delete().eq('id', state.miembro.id);
-        // Tocar la mesa para que el admin reciba evento realtime y actualice sus listas
-        await sb.from('mesas').update({ ronda: state.mesa.ronda ?? 1 }).eq('id', state.mesa.id);
+        await sb.from('miembros').update({ nombre: '[SALIDO] ' + state.nombre }).eq('id', state.miembro.id);
       }
       // Limpiar sesión
       localStorage.removeItem(SESSION_KEY);
