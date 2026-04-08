@@ -238,6 +238,8 @@ function showClosedByAdmin() {
   }
   const fab = $('chat-fab');
   if (fab) fab.style.display = 'none';
+  document.body.classList.remove('amigo-mode');
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#0D0D0D');
   showScreen('closed');
   setTimeout(() => {
     localStorage.removeItem(SESSION_KEY);
@@ -358,6 +360,8 @@ async function init() {
     if (miembro) {
       state.miembro = miembro;
       state.nombre  = miembro.nombre;
+      document.body.classList.add('amigo-mode');
+      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#0D0D0D');
       await cargarPedidosExistentes();
       subscribeRealtime();
       await initChat();
@@ -418,6 +422,7 @@ async function handleJoin() {
     state.miembro = miembro;
     state.nombre  = nombre;
     saveSession(state.mesa.codigo, miembro.id, nombre);
+    document.body.classList.add('amigo-mode');
 
     subscribeRealtime();
     await initChat();
@@ -499,23 +504,43 @@ function renderHomeScreen() {
   }
 }
 
-function openCatalogoModal() {
+function openCatalogoModal(selectedCat = 'Todos') {
   const modal = $('catalogo-modal');
   const list = $('catalogo-list');
+  const catsEl = $('catalogo-cats');
   if (!modal || !list) return;
 
   const allDrinks = getAllDrinks();
+  const categories = ['Todos', 'Cerveza', 'Vino', 'Cóctel', 'Spirits', 'Licores', 'Sin alcohol', 'Aperitivos'];
+
+  // Pills de categoría
+  if (catsEl) {
+    catsEl.innerHTML = '';
+    categories.forEach((cat) => {
+      const pill = document.createElement('button');
+      pill.textContent = cat;
+      pill.style.cssText = `padding:5px 12px;border-radius:20px;border:1px solid ${cat === selectedCat ? 'var(--gold)' : '#333'};background:${cat === selectedCat ? 'var(--gold)' : 'transparent'};color:${cat === selectedCat ? '#000' : '#999'};font-size:12px;font-weight:700;cursor:pointer;`;
+      pill.onclick = () => openCatalogoModal(cat);
+      catsEl.appendChild(pill);
+    });
+  }
+
   list.innerHTML = '';
 
-  const categories = ['Cerveza','Vino','Cóctel','Spirits','Licores','Sin alcohol','Aperitivos'];
-  categories.forEach((cat) => {
+  const filtered = selectedCat === 'Todos'
+    ? categories.filter((c) => c !== 'Todos')
+    : [selectedCat];
+
+  filtered.forEach((cat) => {
     const catDrinks = allDrinks.filter((d) => d.category === cat);
     if (!catDrinks.length) return;
 
-    const header = document.createElement('div');
-    header.style.cssText = 'color:var(--gold);font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin:12px 0 4px;';
-    header.textContent = cat;
-    list.appendChild(header);
+    if (selectedCat === 'Todos') {
+      const header = document.createElement('div');
+      header.style.cssText = 'color:var(--gold);font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin:12px 0 4px;';
+      header.textContent = cat;
+      list.appendChild(header);
+    }
 
     catDrinks.forEach((drink) => {
       const price = drink.price ?? 0;
@@ -529,6 +554,8 @@ function openCatalogoModal() {
       list.appendChild(item);
     });
   });
+
+  list.innerHTML += '<div style="color:#555;text-align:center;font-size:12px;margin-top:12px">* Precios orientativos</div>';
 
   $('btn-catalogo-close').onclick = () => { modal.style.display = 'none'; };
   modal.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
@@ -544,41 +571,95 @@ async function openHistorialModal() {
   modal.style.display = 'flex';
 
   try {
-    const { data: pedidos } = await sb
-      .from('pedidos')
-      .select('*, miembros(nombre)')
-      .eq('mesa_id', state.mesa.id)
-      .eq('estado', 'confirmado');
+    const [{ data: pedidos }, { data: miembros }] = await Promise.all([
+      sb.from('pedidos').select('*, miembros(nombre, es_admin)').eq('mesa_id', state.mesa.id).eq('estado', 'confirmado'),
+      sb.from('miembros').select('*').eq('mesa_id', state.mesa.id).order('created_at', { ascending: true }),
+    ]);
 
     list.innerHTML = '';
+    const allDrinks = getAllDrinks();
+
+    function getPrice(drinkId) {
+      const base = drinkId.split('|')[0];
+      const d = allDrinks.find((x) => x.id === base);
+      return d?.price || 0;
+    }
 
     if (!pedidos || !pedidos.length) {
       list.innerHTML = '<div style="color:#666;text-align:center;padding:20px">No hay pedidos confirmados aún</div>';
     } else {
-      // Agrupar por miembro
-      const byMember = {};
-      pedidos.forEach((p) => {
-        const nombre = p.miembros?.nombre || 'Desconocido';
-        if (!byMember[nombre]) byMember[nombre] = [];
-        byMember[nombre].push(p);
-      });
+      // Total del grupo
+      let totalGlobal = 0;
+      pedidos.forEach((p) => { totalGlobal += getPrice(p.drink_id) * p.cantidad; });
 
-      Object.entries(byMember).forEach(([nombre, ps]) => {
+      const totalBox = document.createElement('div');
+      totalBox.style.cssText = 'background:#1A1200;border:1px solid var(--gold);border-radius:12px;padding:12px;text-align:center;margin-bottom:14px;';
+      totalBox.innerHTML = `<div style="color:#999;font-size:11px;font-weight:700;letter-spacing:2px;margin-bottom:4px">TOTAL DEL GRUPO</div>
+        <div style="color:var(--gold);font-size:26px;font-weight:900">${totalGlobal.toFixed(2)} €</div>`;
+      list.appendChild(totalBox);
+
+      // Por miembro
+      (miembros || []).forEach((m, idx) => {
+        const mPeds = pedidos.filter((p) => p.miembro_id === m.id);
+        if (!mPeds.length) return;
+
+        let consumido = 0;
+        mPeds.forEach((p) => { consumido += getPrice(p.drink_id) * p.cantidad; });
+
+        // Rondas pagadas (miembros en orden circular)
+        const ronda = state.mesa.ronda ?? 1;
+        let rondasPagadas = 0;
+        for (let r = 1; r <= ronda; r++) {
+          if (miembros[(r - 1) % miembros.length]?.id === m.id) rondasPagadas++;
+        }
+        const pagado = rondasPagadas * (totalGlobal / ronda || 0);
+
+        // Agrupar por ronda
+        const porRonda = {};
+        mPeds.forEach((p) => {
+          const r = p.ronda_num ?? 1;
+          if (!porRonda[r]) porRonda[r] = [];
+          porRonda[r].push(p);
+        });
+
         const block = document.createElement('div');
         block.className = 'historial-member';
-        let html = `<div class="historial-member-name">👤 ${nombre}</div>`;
-        ps.forEach((p) => {
-          const label = p.drink_name + (p.marca ? ` — ${p.marca}` : '');
-          html += `<div class="historial-drink-row">
-            <span>${p.drink_emoji}</span>
-            <span>${label}</span>
-            <span>×${p.cantidad}</span>
+
+        let html = `<div class="historial-member-name">${m.es_admin ? '👑' : '👤'} ${m.nombre}</div>`;
+        html += `<div style="color:#9090FF;font-size:14px;font-weight:700;margin-bottom:8px">🔄 <span style="font-size:20px;font-weight:900">${rondasPagadas}</span> ${rondasPagadas === 1 ? 'ronda pagada' : 'rondas pagadas'}</div>`;
+        html += `<div style="display:flex;gap:8px;margin-bottom:10px">
+          <div style="flex:1;background:#1A1200;border:1px solid var(--gold);border-radius:8px;padding:8px;text-align:center">
+            <div style="color:#999;font-size:10px;font-weight:700;letter-spacing:1px;margin-bottom:2px">CONSUMIDO</div>
+            <div style="color:var(--gold);font-size:17px;font-weight:900">${consumido.toFixed(2)} €</div>
+          </div>
+          <div style="flex:1;background:#0D1F0D;border:1px solid #44AA44;border-radius:8px;padding:8px;text-align:center">
+            <div style="color:#999;font-size:10px;font-weight:700;letter-spacing:1px;margin-bottom:2px">PAGADO</div>
+            <div style="color:#66DD66;font-size:17px;font-weight:900">${pagado.toFixed(2)} €</div>
+          </div>
+        </div>`;
+
+        Object.entries(porRonda).forEach(([rondaNum, rPeds]) => {
+          html += `<div style="display:flex;align-items:center;gap:8px;margin:8px 0 4px">
+            <span style="color:#9090FF;font-size:13px;font-weight:900">Ronda Nº ${rondaNum}</span>
+            <div style="flex:1;height:1px;background:#9090FF;opacity:0.4"></div>
           </div>`;
+          rPeds.forEach((p) => {
+            const precio = getPrice(p.drink_id) * p.cantidad;
+            html += `<div class="historial-drink-row">
+              <span>${p.drink_emoji}</span>
+              <span style="flex:1">${p.drink_name}${p.marca ? ' · ' + p.marca : ''}</span>
+              <span style="color:#999">×${p.cantidad}</span>
+              <span style="color:var(--gold);margin-left:8px">${precio.toFixed(2)} €</span>
+            </div>`;
+          });
         });
+
         block.innerHTML = html;
         list.appendChild(block);
       });
     }
+
+    list.innerHTML += '<div style="color:#555;text-align:center;font-size:12px;margin-top:12px">* Precios orientativos</div>';
   } catch (e) {
     list.innerHTML = '<div style="color:#666;text-align:center;padding:20px">Error al cargar</div>';
   }
