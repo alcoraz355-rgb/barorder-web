@@ -458,6 +458,24 @@ function renderHomeScreen() {
   if (rondaLabelEl) rondaLabelEl.textContent = abierta ? 'Estás en la RONDA' : 'RONDA FINALIZADA';
   if (rondaNumEl) rondaNumEl.textContent = ronda;
 
+  // Pagador de esta ronda y la siguiente
+  const pagadorLinesEl = $('home-pagador-lines');
+  if (pagadorLinesEl) {
+    sb.from('miembros').select('nombre').eq('mesa_id', mesa.id).order('created_at', { ascending: true })
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          const pagador = data[(ronda - 1) % data.length];
+          const sigPagador = data[ronda % data.length];
+          const sigRonda = ronda + 1;
+          $('home-pagador-ronda-num').textContent = ronda;
+          $('home-pagador-nombre').textContent = pagador.nombre;
+          $('home-sig-ronda-num').textContent = sigRonda;
+          $('home-sig-nombre').textContent = sigPagador.nombre;
+          pagadorLinesEl.style.display = 'flex';
+        }
+      });
+  }
+
   // Botón pedidos
   const btnPedidos = $('btn-home-pedidos');
   if (btnPedidos) {
@@ -1174,8 +1192,8 @@ document.addEventListener('DOMContentLoaded', () => {
   $('btn-volver-pedido')?.addEventListener('click', async () => {
     const { data: mesaFresh } = await sb.from('mesas').select('*').eq('id', state.mesa.id).single();
     if (mesaFresh) state.mesa = { ...state.mesa, ...mesaFresh };
-    renderOrderScreen();
-    showScreen('order');
+    renderHomeScreen();
+    showScreen('home');
   });
 
   // ── Buscador ─────────────────────────────────────────────────────────────

@@ -37,6 +37,21 @@
           <span class="home-ronda-num" id="home-ronda-num">1</span>
         </div>
 
+        <div class="home-pagador-lines" id="home-pagador-lines" style="display:none">
+          <div class="home-pagador-row">
+            <span class="home-pagador-label">Esta RONDA </span>
+            <span class="home-pagador-ronda-num" id="home-pagador-ronda-num"></span>
+            <span class="home-pagador-label"> la paga: </span>
+            <span class="home-pagador-nombre" id="home-pagador-nombre"></span>
+          </div>
+          <div class="home-pagador-row">
+            <span class="home-pagador-label">La siguiente RONDA </span>
+            <span class="home-pagador-ronda-num" id="home-sig-ronda-num"></span>
+            <span class="home-pagador-label"> le toca a: </span>
+            <span class="home-pagador-nombre" id="home-sig-nombre"></span>
+          </div>
+        </div>
+
         <div class="home-divider"></div>
 
         <button class="home-btn home-btn-pedidos" id="btn-home-pedidos">🍺  PEDIDOS</button>
@@ -151,21 +166,25 @@
 
   <!-- ── MODAL: Catálogo bebidas (solo lectura) ───────────────── -->
   <div id="catalogo-modal" class="modal-overlay" style="display:none">
-    <div class="modal-sheet" style="max-height:80dvh;overflow-y:auto">
+    <div class="modal-sheet info-modal-sheet">
       <div class="modal-handle"></div>
       <div class="modal-drink-title">🍹 Catálogo de bebidas</div>
-      <div id="catalogo-list" style="margin-top:12px"></div>
-      <button class="btn-danger" id="btn-catalogo-close" style="margin-top:16px">Cerrar</button>
+      <div id="catalogo-list" class="info-modal-scroll"></div>
+      <div class="info-modal-footer">
+        <button class="btn-danger" id="btn-catalogo-close">Cerrar</button>
+      </div>
     </div>
   </div>
 
   <!-- ── MODAL: Historial de grupo ────────────────────────────── -->
   <div id="historial-modal" class="modal-overlay" style="display:none">
-    <div class="modal-sheet" style="max-height:80dvh;overflow-y:auto">
+    <div class="modal-sheet info-modal-sheet">
       <div class="modal-handle"></div>
       <div class="modal-drink-title">📊 Historial de grupo</div>
-      <div id="historial-list" style="margin-top:12px"></div>
-      <button class="btn-danger" id="btn-historial-close" style="margin-top:16px">Cerrar</button>
+      <div id="historial-list" class="info-modal-scroll"></div>
+      <div class="info-modal-footer">
+        <button class="btn-danger" id="btn-historial-close">Cerrar</button>
+      </div>
     </div>
   </div>
 
