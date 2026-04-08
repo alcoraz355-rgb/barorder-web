@@ -615,95 +615,67 @@ async function showResumenScreen() {
   showScreen('resumen');
 
   try {
-    const [{ data: pedidos }, { data: miembros }] = await Promise.all([
-      sb.from('pedidos').select('*, miembros(nombre, es_admin)').eq('mesa_id', state.mesa.id).eq('estado', 'confirmado'),
-      sb.from('miembros').select('*').eq('mesa_id', state.mesa.id).order('created_at', { ascending: true }),
-    ]);
+    const { data: pedidos } = await sb
+      .from('pedidos')
+      .select('*')
+      .eq('mesa_id', state.mesa.id)
+      .eq('miembro_id', state.miembro.id)
+      .eq('estado', 'confirmado');
 
     list.innerHTML = '';
-    const allDrinks = getAllDrinks();
-
-    function getPrice(drinkId) {
-      const base = drinkId.split('|')[0];
-      const d = allDrinks.find((x) => x.id === base);
-      return d?.price || 0;
-    }
 
     if (!pedidos || !pedidos.length) {
-      list.innerHTML = '<div style="color:#666;text-align:center;padding:20px">No hay pedidos confirmados aún</div>';
+      list.innerHTML = '<div style="color:#666;text-align:center;padding:20px">No tienes pedidos confirmados aún</div>';
     } else {
-      // Total del grupo
-      let totalGlobal = 0;
-      pedidos.forEach((p) => { totalGlobal += getPrice(p.drink_id) * p.cantidad; });
+      const allDrinks = getAllDrinks();
+      function getPrice(drinkId) {
+        const base = drinkId.split('|')[0];
+        return allDrinks.find((x) => x.id === base)?.price || 0;
+      }
+
+      // Agrupar por ronda
+      const porRonda = {};
+      pedidos.forEach((p) => {
+        const r = p.ronda_num ?? state.mesa.ronda ?? 1;
+        if (!porRonda[r]) porRonda[r] = [];
+        porRonda[r].push(p);
+      });
+
+      let totalMio = 0;
+      pedidos.forEach((p) => { totalMio += getPrice(p.drink_id) * p.cantidad; });
 
       const totalBox = document.createElement('div');
       totalBox.style.cssText = 'background:#1A1200;border:1px solid var(--gold);border-radius:12px;padding:12px;text-align:center;margin-bottom:14px;';
-      totalBox.innerHTML = `<div style="color:#999;font-size:11px;font-weight:700;letter-spacing:2px;margin-bottom:4px">TOTAL DEL GRUPO</div>
-        <div style="color:var(--gold);font-size:26px;font-weight:900">${totalGlobal.toFixed(2)} €</div>`;
+      totalBox.innerHTML = `<div style="color:#999;font-size:11px;font-weight:700;letter-spacing:2px;margin-bottom:4px">MI TOTAL</div>
+        <div style="color:var(--gold);font-size:26px;font-weight:900">${totalMio.toFixed(2)} €</div>`;
       list.appendChild(totalBox);
 
-      // Por miembro
-      (miembros || []).forEach((m, idx) => {
-        const mPeds = pedidos.filter((p) => p.miembro_id === m.id);
-        if (!mPeds.length) return;
+      Object.entries(porRonda).sort(([a],[b]) => a-b).forEach(([rondaNum, rPeds]) => {
+        const header = document.createElement('div');
+        header.style.cssText = 'display:flex;align-items:center;gap:8px;margin:12px 0 6px';
+        header.innerHTML = `<span style="color:#9090FF;font-size:15px;font-weight:900">Ronda Nº ${rondaNum}</span>
+          <div style="flex:1;height:1px;background:#9090FF;opacity:0.4"></div>`;
+        list.appendChild(header);
 
-        let consumido = 0;
-        mPeds.forEach((p) => { consumido += getPrice(p.drink_id) * p.cantidad; });
-
-        // Rondas pagadas (miembros en orden circular)
-        const ronda = state.mesa.ronda ?? 1;
-        let rondasPagadas = 0;
-        for (let r = 1; r <= ronda; r++) {
-          if (miembros[(r - 1) % miembros.length]?.id === m.id) rondasPagadas++;
-        }
-        const pagado = rondasPagadas * (totalGlobal / ronda || 0);
-
-        // Agrupar por ronda
-        const porRonda = {};
-        mPeds.forEach((p) => {
-          const r = p.ronda_num ?? 1;
-          if (!porRonda[r]) porRonda[r] = [];
-          porRonda[r].push(p);
+        rPeds.forEach((p) => {
+          const precio = getPrice(p.drink_id) * p.cantidad;
+          const row = document.createElement('div');
+          row.className = 'historial-drink-row';
+          row.innerHTML = `
+            <span>${p.drink_emoji}</span>
+            <span style="flex:1">${p.drink_name}${p.marca ? ' · ' + p.marca : ''}</span>
+            <span style="color:#999">×${p.cantidad}</span>
+            <span style="color:var(--gold);margin-left:8px">${precio.toFixed(2)} €</span>
+          `;
+          list.appendChild(row);
         });
-
-        const block = document.createElement('div');
-        block.className = 'historial-member';
-
-        let html = `<div class="historial-member-name">${m.es_admin ? '👑' : '👤'} ${m.nombre}</div>`;
-        html += `<div style="color:#9090FF;font-size:14px;font-weight:700;margin-bottom:8px">🔄 <span style="font-size:20px;font-weight:900">${rondasPagadas}</span> ${rondasPagadas === 1 ? 'ronda pagada' : 'rondas pagadas'}</div>`;
-        html += `<div style="display:flex;gap:8px;margin-bottom:10px">
-          <div style="flex:1;background:#1A1200;border:1px solid var(--gold);border-radius:8px;padding:8px;text-align:center">
-            <div style="color:#999;font-size:10px;font-weight:700;letter-spacing:1px;margin-bottom:2px">CONSUMIDO</div>
-            <div style="color:var(--gold);font-size:17px;font-weight:900">${consumido.toFixed(2)} €</div>
-          </div>
-          <div style="flex:1;background:#0D1F0D;border:1px solid #44AA44;border-radius:8px;padding:8px;text-align:center">
-            <div style="color:#999;font-size:10px;font-weight:700;letter-spacing:1px;margin-bottom:2px">PAGADO</div>
-            <div style="color:#66DD66;font-size:17px;font-weight:900">${pagado.toFixed(2)} €</div>
-          </div>
-        </div>`;
-
-        Object.entries(porRonda).forEach(([rondaNum, rPeds]) => {
-          html += `<div style="display:flex;align-items:center;gap:8px;margin:8px 0 4px">
-            <span style="color:#9090FF;font-size:13px;font-weight:900">Ronda Nº ${rondaNum}</span>
-            <div style="flex:1;height:1px;background:#9090FF;opacity:0.4"></div>
-          </div>`;
-          rPeds.forEach((p) => {
-            const precio = getPrice(p.drink_id) * p.cantidad;
-            html += `<div class="historial-drink-row">
-              <span>${p.drink_emoji}</span>
-              <span style="flex:1">${p.drink_name}${p.marca ? ' · ' + p.marca : ''}</span>
-              <span style="color:#999">×${p.cantidad}</span>
-              <span style="color:var(--gold);margin-left:8px">${precio.toFixed(2)} €</span>
-            </div>`;
-          });
-        });
-
-        block.innerHTML = html;
-        list.appendChild(block);
       });
-    }
 
-    list.innerHTML += '<div style="color:#555;text-align:center;font-size:12px;margin-top:12px">* Precios orientativos</div>';
+      const note = document.createElement('div');
+      note.style.cssText = 'color:#555;text-align:center;font-size:12px;margin-top:16px;';
+      note.textContent = '* Precios orientativos';
+      list.appendChild(note);
+    }
   } catch (e) {
     list.innerHTML = '<div style="color:#666;text-align:center;padding:20px">Error al cargar</div>';
   }
@@ -721,6 +693,8 @@ function renderOrderScreen() {
   $('btn-eliminar-seleccion').onclick = handleEliminarSeleccion;
   const btnOrderVolver = $('btn-order-volver');
   if (btnOrderVolver) btnOrderVolver.onclick = () => { renderHomeScreen(); showScreen('home'); };
+  const btnOrderHome = $('btn-order-home');
+  if (btnOrderHome) btnOrderHome.onclick = () => { renderHomeScreen(); showScreen('home'); };
 
   // Etiqueta de ronda
   const ronda = state.mesa.ronda ?? 1;
@@ -1020,6 +994,8 @@ function renderConfirmed() {
   list.appendChild(card);
 
   $('btn-modificar').onclick = handleModificar;
+  const btnConfirmedHome = $('btn-confirmed-home');
+  if (btnConfirmedHome) btnConfirmedHome.onclick = () => { renderHomeScreen(); showScreen('home'); };
   $('btn-borrar').onclick = handleBorrar;
 }
 

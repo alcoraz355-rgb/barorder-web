@@ -55,7 +55,7 @@
         <div class="home-divider"></div>
 
         <button class="home-btn home-btn-pedidos" id="btn-home-pedidos">🍺  PEDIDOS</button>
-        <button class="home-btn home-btn-gold" id="btn-home-historial">📊  HISTORIAL DE GRUPO</button>
+        <button class="home-btn home-btn-gold" id="btn-home-historial">📊  HISTORIAL DE TUS RONDAS</button>
         <button class="home-btn home-btn-gold" id="btn-home-catalogo">🍹  CATÁLOGO BEBIDAS</button>
       </div>
     </div>
@@ -82,7 +82,10 @@
   <div id="screen-order" class="screen">
     <div class="order-sticky-header">
       <div class="top-bar">
-        <div class="logo-title"><span>🍸</span><h1>BarOrder</h1></div>
+        <div style="display:flex;flex-direction:column;align-items:flex-start;gap:2px">
+          <button id="btn-order-home" style="background:transparent;border:none;color:var(--gold);font-size:14px;font-weight:700;cursor:pointer;padding:0">← Inicio</button>
+          <div class="logo-title"><span>🍸</span><h1>BarOrder</h1></div>
+        </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
           <div class="mesa-badge" id="order-mesa-code">—</div>
           <div id="order-pagador-badge" style="color:#9090FF;font-size:16px;font-weight:900;display:none"></div>
@@ -109,7 +112,10 @@
   <!-- ── PANTALLA: Pedido confirmado ───────────────────────────── -->
   <div id="screen-confirmed" class="screen">
     <div class="top-bar">
-      <div class="logo-title"><span>🍸</span><h1>BarOrder</h1></div>
+      <div style="display:flex;flex-direction:column;align-items:flex-start;gap:2px">
+        <button id="btn-confirmed-home" style="background:transparent;border:none;color:var(--gold);font-size:14px;font-weight:700;cursor:pointer;padding:0">← Inicio</button>
+        <div class="logo-title"><span>🍸</span><h1>BarOrder</h1></div>
+      </div>
       <div style="display:flex;align-items:center;gap:8px">
         <div class="mesa-badge" id="conf-mesa-code">—</div>
         <div class="ronda-badge" id="conf-ronda-badge">🔄 Ronda 1</div>
@@ -167,7 +173,7 @@
   <!-- ── PANTALLA: Resumen (historial de grupo) ───────────────── -->
   <div id="screen-resumen" class="screen">
     <div class="top-bar">
-      <div class="logo-title"><span>📊</span><h1>Historial de grupo</h1></div>
+      <div class="logo-title"><span>📊</span><h1>Historial de tus rondas</h1></div>
       <button id="btn-resumen-volver" style="background:transparent;border:none;color:var(--gold);font-size:15px;font-weight:700;cursor:pointer">← Volver</button>
     </div>
     <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 16px 80px" id="resumen-content">
