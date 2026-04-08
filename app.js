@@ -413,6 +413,19 @@ async function handleJoin() {
   $('btn-join').textContent = '...';
 
   try {
+    // Comprobar que el nombre no existe ya en el grupo
+    const { data: existing } = await sb
+      .from('miembros')
+      .select('id')
+      .eq('mesa_id', state.mesa.id)
+      .ilike('nombre', nombre);
+    if (existing && existing.length > 0) {
+      $('btn-join').disabled = false;
+      $('btn-join').textContent = 'Entrar a la mesa →';
+      alert(`El nombre "${nombre}" ya está en uso en este grupo. Elige otro nombre.`);
+      return;
+    }
+
     const { data: miembro, error } = await sb
       .from('miembros')
       .insert({ mesa_id: state.mesa.id, nombre, es_admin: false })
@@ -482,6 +495,41 @@ function renderHomeScreen() {
           pagadorLinesEl.style.display = 'flex';
         }
       });
+  }
+
+  // Botón salir
+  const btnSalir = $('btn-home-salir');
+  if (btnSalir) {
+    btnSalir.onclick = () => {
+      if (!confirm('¿Seguro que quieres salir del grupo? Tus pedidos quedan registrados pero no podrás volver a entrar con el mismo nombre.')) return;
+      // Limpiar sesión y canal
+      localStorage.removeItem(SESSION_KEY);
+      if (state.channel) { state.channel.unsubscribe(); state.channel = null; }
+      if (state.chatChannel) { state.chatChannel.unsubscribe(); state.chatChannel = null; }
+      document.body.classList.remove('amigo-mode');
+      document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#0D0D0D');
+      const fab = $('chat-fab');
+      if (fab) fab.style.display = 'none';
+      // Pantalla de despedida
+      const el = $('screen-closed');
+      if (el) {
+        const title = el.querySelector('.closed-title');
+        const sub = el.querySelector('.closed-sub');
+        const emoji = el.querySelector('.closed-emoji');
+        if (title) title.textContent = '¡Hasta la próxima!';
+        if (sub) sub.textContent = 'Has salido del grupo. ¡Que aproveche! 🍻';
+        if (emoji) emoji.textContent = '👋';
+      }
+      showScreen('closed');
+      // A los 2 segundos volver a la pantalla de nombre para poder entrar de nuevo
+      setTimeout(() => {
+        state.miembro = null;
+        state.nombre = null;
+        state.quantities = {};
+        state.brandSelections = {};
+        showScreen('join');
+      }, 2000);
+    };
   }
 
   // Botón pedidos

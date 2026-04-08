@@ -55,8 +55,11 @@
         <div class="home-divider"></div>
 
         <button class="home-btn home-btn-pedidos" id="btn-home-pedidos">🍺  PEDIDOS</button>
-        <button class="home-btn home-btn-gold" id="btn-home-historial">📊  HISTORIAL DE TUS RONDAS</button>
-        <button class="home-btn home-btn-gold" id="btn-home-catalogo">🍹  CATÁLOGO BEBIDAS</button>
+        <div style="display:flex;gap:8px;width:100%">
+          <button class="home-btn home-btn-gold" id="btn-home-historial" style="flex:1;font-size:13px;padding-left:6px;padding-right:6px">📊 HISTORIAL</button>
+          <button class="home-btn home-btn-gold" id="btn-home-catalogo" style="flex:1;font-size:13px;padding-left:6px;padding-right:6px">🍹 CATÁLOGO</button>
+        </div>
+        <button class="home-btn home-btn-salir" id="btn-home-salir">🚪  SALIR DEL GRUPO</button>
       </div>
     </div>
   </div>
@@ -173,7 +176,7 @@
   <!-- ── PANTALLA: Resumen (historial de grupo) ───────────────── -->
   <div id="screen-resumen" class="screen">
     <div class="top-bar">
-      <div class="logo-title"><span>📊</span><h1>Historial de tus rondas</h1></div>
+      <div class="logo-title"><span>📊</span><h1>Tu historial</h1></div>
       <button id="btn-resumen-volver" style="background:transparent;border:none;color:var(--gold);font-size:15px;font-weight:700;cursor:pointer">← Volver</button>
     </div>
     <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 16px 80px" id="resumen-content">
