@@ -521,14 +521,6 @@ function renderHomeScreen() {
         if (emoji) emoji.textContent = '👋';
       }
       showScreen('closed');
-      // A los 2 segundos volver a la pantalla de nombre para poder entrar de nuevo
-      setTimeout(() => {
-        state.miembro = null;
-        state.nombre = null;
-        state.quantities = {};
-        state.brandSelections = {};
-        showScreen('join');
-      }, 2000);
     };
   }
 
