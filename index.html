@@ -164,11 +164,34 @@
     </div>
   </div>
 
+  <!-- ── PANTALLA: Resumen (historial de grupo) ───────────────── -->
+  <div id="screen-resumen" class="screen">
+    <div class="top-bar">
+      <div class="logo-title"><span>📊</span><h1>Historial de grupo</h1></div>
+      <button id="btn-resumen-volver" style="background:transparent;border:none;color:var(--gold);font-size:15px;font-weight:700;cursor:pointer">← Volver</button>
+    </div>
+    <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:16px 16px 80px" id="resumen-content">
+    </div>
+  </div>
+
+  <!-- ── PANTALLA: Catálogo bebidas (solo lectura) ──────────────── -->
+  <div id="screen-catalogo" class="screen">
+    <div class="top-bar">
+      <div class="logo-title"><span>🍹</span><h1>Catálogo de bebidas</h1></div>
+      <button id="btn-catalogo-volver" style="background:transparent;border:none;color:var(--gold);font-size:15px;font-weight:700;cursor:pointer">← Volver</button>
+    </div>
+    <div style="padding:12px 16px 0">
+      <div id="catalogo-screen-cats" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
+    </div>
+    <div style="flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 16px 80px" id="catalogo-screen-list"></div>
+  </div>
+
   <!-- ── MODAL: Catálogo bebidas (solo lectura) ───────────────── -->
   <div id="catalogo-modal" class="modal-overlay" style="display:none">
     <div class="modal-sheet info-modal-sheet">
       <div class="modal-handle"></div>
       <div class="modal-drink-title">🍹 Catálogo de bebidas</div>
+      <div id="catalogo-cats" style="display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 4px"></div>
       <div id="catalogo-list" class="info-modal-scroll"></div>
       <div class="info-modal-footer">
         <button class="btn-danger" id="btn-catalogo-close">Cerrar</button>

@@ -494,81 +494,125 @@ function renderHomeScreen() {
   // Botón historial
   const btnHistorial = $('btn-home-historial');
   if (btnHistorial) {
-    btnHistorial.onclick = openHistorialModal;
+    btnHistorial.onclick = showResumenScreen;
   }
 
   // Botón catálogo
   const btnCatalogo = $('btn-home-catalogo');
   if (btnCatalogo) {
-    btnCatalogo.onclick = openCatalogoModal;
+    btnCatalogo.onclick = showCatalogoSelector;
   }
 }
 
-function openCatalogoModal(selectedCat = 'Todos') {
+// ─── Catálogo selector (dos opciones: por defecto / del bar) ─────────────────
+function showCatalogoSelector() {
+  const hasBarCatalog = state.customDrinks && state.customDrinks.length > 0;
   const modal = $('catalogo-modal');
   const list = $('catalogo-list');
   const catsEl = $('catalogo-cats');
-  if (!modal || !list) return;
+  if (!modal) return;
 
-  const allDrinks = getAllDrinks();
-  const categories = ['Todos', 'Cerveza', 'Vino', 'Cóctel', 'Spirits', 'Licores', 'Sin alcohol', 'Aperitivos'];
+  if (catsEl) catsEl.innerHTML = '';
+  if (list) {
+    list.innerHTML = '';
+    // Opción 1: catálogo por defecto
+    const btn1 = document.createElement('button');
+    btn1.style.cssText = 'width:100%;padding:16px;border-radius:14px;border:2px solid var(--gold);background:#000;color:var(--gold);font-size:16px;font-weight:800;cursor:pointer;margin-bottom:10px;';
+    btn1.textContent = '📋  Catálogo por defecto';
+    btn1.onclick = () => { modal.style.display = 'none'; showCatalogoScreen(DRINKS, 'Catálogo por defecto'); };
+    list.appendChild(btn1);
 
-  // Pills de categoría
-  if (catsEl) {
-    catsEl.innerHTML = '';
-    categories.forEach((cat) => {
-      const pill = document.createElement('button');
-      pill.textContent = cat;
-      pill.style.cssText = `padding:5px 12px;border-radius:20px;border:1px solid ${cat === selectedCat ? 'var(--gold)' : '#333'};background:${cat === selectedCat ? 'var(--gold)' : 'transparent'};color:${cat === selectedCat ? '#000' : '#999'};font-size:12px;font-weight:700;cursor:pointer;`;
-      pill.onclick = () => openCatalogoModal(cat);
-      catsEl.appendChild(pill);
-    });
-  }
+    // Opción 2: catálogo del bar
+    const btn2 = document.createElement('button');
+    const barDrinks = hasBarCatalog ? state.customDrinks : null;
+    btn2.style.cssText = `width:100%;padding:16px;border-radius:14px;border:2px solid var(--gold);background:#000;color:var(--gold);font-size:16px;font-weight:800;cursor:pointer;margin-bottom:10px;opacity:${barDrinks ? 1 : 0.4};`;
+    btn2.textContent = '🍺  Catálogo del Bar';
+    btn2.disabled = !barDrinks;
+    btn2.onclick = () => { if (barDrinks) { modal.style.display = 'none'; showCatalogoScreen(barDrinks, 'Catálogo del Bar'); } };
+    list.appendChild(btn2);
 
-  list.innerHTML = '';
-
-  const filtered = selectedCat === 'Todos'
-    ? categories.filter((c) => c !== 'Todos')
-    : [selectedCat];
-
-  filtered.forEach((cat) => {
-    const catDrinks = allDrinks.filter((d) => d.category === cat);
-    if (!catDrinks.length) return;
-
-    if (selectedCat === 'Todos') {
-      const header = document.createElement('div');
-      header.style.cssText = 'color:var(--gold);font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin:12px 0 4px;';
-      header.textContent = cat;
-      list.appendChild(header);
+    if (!barDrinks) {
+      const note = document.createElement('div');
+      note.style.cssText = 'color:#555;font-size:12px;text-align:center;margin-top:4px;';
+      note.textContent = 'El bar no ha configurado su catálogo aún';
+      list.appendChild(note);
     }
-
-    catDrinks.forEach((drink) => {
-      const price = drink.price ?? 0;
-      const item = document.createElement('div');
-      item.className = 'catalogo-item';
-      item.innerHTML = `
-        <span class="catalogo-item-emoji">${drink.emoji}</span>
-        <span class="catalogo-item-name">${drink.name}</span>
-        <span class="catalogo-item-price">${price.toFixed(2).replace('.', ',')} €</span>
-      `;
-      list.appendChild(item);
-    });
-  });
-
-  list.innerHTML += '<div style="color:#555;text-align:center;font-size:12px;margin-top:12px">* Precios orientativos</div>';
+  }
 
   $('btn-catalogo-close').onclick = () => { modal.style.display = 'none'; };
   modal.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
   modal.style.display = 'flex';
 }
 
-async function openHistorialModal() {
-  const modal = $('historial-modal');
-  const list = $('historial-list');
-  if (!modal || !list) return;
+function showCatalogoScreen(drinks, titulo, selectedCat = 'Todos') {
+  const categories = ['Todos', 'Cerveza', 'Vino', 'Cóctel', 'Spirits', 'Licores', 'Sin alcohol', 'Aperitivos'];
+  const catsEl = $('catalogo-screen-cats');
+  const list = $('catalogo-screen-list');
 
-  list.innerHTML = '<div style="color:#666;text-align:center;padding:20px">Cargando...</div>';
-  modal.style.display = 'flex';
+  // Título
+  const titleEl = document.querySelector('#screen-catalogo .logo-title h1');
+  if (titleEl) titleEl.textContent = titulo;
+
+  // Pills
+  if (catsEl) {
+    catsEl.innerHTML = '';
+    categories.forEach((cat) => {
+      const pill = document.createElement('button');
+      pill.className = 'cat-pill' + (cat === selectedCat ? ' active' : '');
+      pill.textContent = cat;
+      pill.onclick = () => showCatalogoScreen(drinks, titulo, cat);
+      catsEl.appendChild(pill);
+    });
+  }
+
+  // Lista
+  if (list) {
+    list.innerHTML = '';
+    const filtered = selectedCat === 'Todos'
+      ? categories.filter((c) => c !== 'Todos')
+      : [selectedCat];
+
+    filtered.forEach((cat) => {
+      const catDrinks = drinks.filter((d) => d.category === cat);
+      if (!catDrinks.length) return;
+
+      if (selectedCat === 'Todos') {
+        const header = document.createElement('div');
+        header.style.cssText = 'color:var(--gold);font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin:14px 0 6px;';
+        header.textContent = cat;
+        list.appendChild(header);
+      }
+
+      catDrinks.forEach((drink) => {
+        const price = drink.price ?? drink.defaultPrice ?? 0;
+        const item = document.createElement('div');
+        item.className = 'catalogo-item';
+        item.innerHTML = `
+          <span class="catalogo-item-emoji">${drink.emoji}</span>
+          <span class="catalogo-item-name">${drink.name}</span>
+          <span class="catalogo-item-price">${price.toFixed(2).replace('.', ',')} €</span>
+        `;
+        list.appendChild(item);
+      });
+    });
+
+    const note = document.createElement('div');
+    note.style.cssText = 'color:#555;text-align:center;font-size:12px;margin-top:16px;';
+    note.textContent = '* Precios orientativos';
+    list.appendChild(note);
+  }
+
+  $('btn-catalogo-volver').onclick = () => showScreen('home');
+  showScreen('catalogo');
+}
+
+async function showResumenScreen() {
+  const list = $('resumen-content');
+  if (!list) return;
+
+  list.innerHTML = '<div style="color:#666;text-align:center;padding:40px">Cargando...</div>';
+  $('btn-resumen-volver').onclick = () => showScreen('home');
+  showScreen('resumen');
 
   try {
     const [{ data: pedidos }, { data: miembros }] = await Promise.all([
@@ -663,9 +707,6 @@ async function openHistorialModal() {
   } catch (e) {
     list.innerHTML = '<div style="color:#666;text-align:center;padding:20px">Error al cargar</div>';
   }
-
-  $('btn-historial-close').onclick = () => { modal.style.display = 'none'; };
-  modal.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
 }
 
 // ─── Pantalla de pedido ───────────────────────────────────────────────────────
