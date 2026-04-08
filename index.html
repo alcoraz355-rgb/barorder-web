@@ -17,6 +17,35 @@
     <div class="spinner" style="margin: auto; flex: 1;"></div>
   </div>
 
+  <!-- ── PANTALLA: Home amigo ─────────────────────────────────── -->
+  <div id="screen-home" class="screen">
+    <div class="home-scroll">
+      <div class="home-container">
+        <div class="home-logo">🍸</div>
+        <div class="home-title">BarOrder</div>
+        <div class="home-fecha" id="home-fecha"></div>
+
+        <div class="home-code-box">
+          <div class="home-code-label">CÓDIGO DE GRUPO</div>
+          <div class="home-group-name" id="home-group-name" style="display:none"></div>
+          <div class="home-code" id="home-code">—</div>
+          <div class="home-amigo-name" id="home-amigo-name"></div>
+        </div>
+
+        <div class="home-ronda-box" id="home-ronda-box">
+          <span class="home-ronda-text" id="home-ronda-label">Estás en la RONDA</span>
+          <span class="home-ronda-num" id="home-ronda-num">1</span>
+        </div>
+
+        <div class="home-divider"></div>
+
+        <button class="home-btn home-btn-pedidos" id="btn-home-pedidos">🍺  PEDIDOS</button>
+        <button class="home-btn home-btn-gold" id="btn-home-historial">📊  HISTORIAL DE GRUPO</button>
+        <button class="home-btn home-btn-gold" id="btn-home-catalogo">🍹  CATÁLOGO BEBIDAS</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ── PANTALLA: Nombre (unirse) ─────────────────────────────── -->
   <div id="screen-join" class="screen">
     <div class="welcome-container">
@@ -57,6 +86,7 @@
         <button class="btn-primary" id="btn-confirmar">✓  Confirmar pedido</button>
         <button class="btn-danger-outline" id="btn-eliminar-seleccion">🗑  Eliminar selección</button>
       </div>
+      <button class="btn-secondary" id="btn-order-volver" style="width:100%;margin-top:6px">← Inicio</button>
       <p class="price-disclaimer">* Los precios mostrados son orientativos</p>
     </div>
   </div>
@@ -116,6 +146,26 @@
       <div class="closed-emoji">🔒</div>
       <div class="closed-title">Mesa cerrada</div>
       <p class="closed-sub">El admin ha cerrado esta mesa. ¡Hasta la próxima! 🍻</p>
+    </div>
+  </div>
+
+  <!-- ── MODAL: Catálogo bebidas (solo lectura) ───────────────── -->
+  <div id="catalogo-modal" class="modal-overlay" style="display:none">
+    <div class="modal-sheet" style="max-height:80dvh;overflow-y:auto">
+      <div class="modal-handle"></div>
+      <div class="modal-drink-title">🍹 Catálogo de bebidas</div>
+      <div id="catalogo-list" style="margin-top:12px"></div>
+      <button class="btn-danger" id="btn-catalogo-close" style="margin-top:16px">Cerrar</button>
+    </div>
+  </div>
+
+  <!-- ── MODAL: Historial de grupo ────────────────────────────── -->
+  <div id="historial-modal" class="modal-overlay" style="display:none">
+    <div class="modal-sheet" style="max-height:80dvh;overflow-y:auto">
+      <div class="modal-handle"></div>
+      <div class="modal-drink-title">📊 Historial de grupo</div>
+      <div id="historial-list" style="margin-top:12px"></div>
+      <button class="btn-danger" id="btn-historial-close" style="margin-top:16px">Cerrar</button>
     </div>
   </div>
 

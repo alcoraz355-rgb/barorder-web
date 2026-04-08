@@ -79,6 +79,96 @@ html, body {
   padding: 0;
 }
 
+/* ── Home screen (amigo) ────────────────────────────────────── */
+#screen-home { overflow: hidden; }
+.home-scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.home-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 28px 24px 40px;
+  gap: 0;
+}
+.home-logo { font-size: 44px; margin-bottom: 4px; }
+.home-title { color: var(--gold); font-size: 28px; font-weight: 900; letter-spacing: 2px; margin-bottom: 4px; }
+.home-fecha { color: var(--text-muted); font-size: 13px; text-transform: capitalize; margin-bottom: 12px; }
+.home-code-box {
+  background: var(--surface);
+  border: 1px solid var(--gold);
+  border-radius: 20px;
+  padding: 16px;
+  width: 100%;
+  text-align: center;
+  margin-bottom: 12px;
+}
+.home-code-label { color: var(--gold); font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 6px; }
+.home-group-name { color: var(--text); font-size: 20px; font-weight: 800; margin-bottom: 6px; }
+.home-code { color: var(--text-muted); font-size: 22px; font-weight: 700; letter-spacing: 1px; margin-bottom: 8px; }
+.home-amigo-name { color: var(--gold); font-size: 16px; font-weight: 700; }
+.home-ronda-box {
+  background: #444;
+  border-radius: 14px;
+  padding: 14px 20px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 8px;
+  margin-bottom: 12px;
+}
+.home-ronda-box.abierta { background: #444; }
+.home-ronda-text { color: #999; font-size: 17px; font-weight: 800; }
+.home-ronda-num  { color: #999; font-size: 26px; font-weight: 900; }
+.home-divider { height: 1px; background: var(--border); width: 100%; margin: 4px 0 12px; }
+.home-btn {
+  width: 100%;
+  border-radius: 14px;
+  padding: 16px;
+  font-size: 16px;
+  font-weight: 800;
+  border: 2px solid transparent;
+  margin-bottom: 8px;
+  cursor: pointer;
+  background: transparent;
+}
+.home-btn-pedidos { border-color: #00BCD4; color: #fff; }
+.home-btn-pedidos:disabled { border-color: #444; color: #666; cursor: not-allowed; opacity: 0.5; }
+.home-btn-gold { border-color: var(--gold); color: var(--gold); }
+
+/* Catálogo modal items */
+.catalogo-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #1E1E1E;
+  gap: 10px;
+}
+.catalogo-item-emoji { font-size: 20px; width: 30px; text-align: center; }
+.catalogo-item-name { flex: 1; color: var(--text); font-size: 14px; }
+.catalogo-item-price {
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 700;
+  background: #1A1A1A;
+  border: 1px solid #333;
+  border-radius: 6px;
+  padding: 3px 8px;
+}
+
+/* Historial modal items */
+.historial-member {
+  background: #1A1A1A;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+.historial-member-name { color: var(--gold); font-size: 14px; font-weight: 700; margin-bottom: 6px; }
+.historial-drink-row { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
+.historial-drink-row span:first-child { font-size: 16px; }
+.historial-drink-row span:nth-child(2) { flex: 1; color: var(--text); font-size: 13px; }
+.historial-drink-row span:last-child { color: var(--text-muted); font-size: 13px; }
+
 /* ── Welcome / Name input ───────────────────────────────────── */
 .welcome-container {
   flex: 1;

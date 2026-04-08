@@ -364,8 +364,8 @@ async function init() {
         await renderReparto();
         showScreen('reparto');
       } else {
-        renderOrderScreen();
-        showScreen('order');
+        renderHomeScreen();
+        showScreen('home');
       }
       return;
     }
@@ -420,13 +420,150 @@ async function handleJoin() {
 
     subscribeRealtime();
     await initChat();
-    renderOrderScreen();
-    showScreen('order');
+    renderHomeScreen();
+    showScreen('home');
   } catch (e) {
     $('btn-join').disabled = false;
     $('btn-join').textContent = 'Entrar a la mesa →';
     alert('Error: ' + e.message);
   }
+}
+
+// ─── Pantalla Home (amigo) ────────────────────────────────────────────────────
+function renderHomeScreen() {
+  const mesa = state.mesa;
+  const ronda = mesa.ronda ?? 1;
+  const abierta = mesa.estado === 'abierta';
+
+  // Fecha
+  const fechaEl = $('home-fecha');
+  if (fechaEl) {
+    fechaEl.textContent = new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+  }
+
+  // Código / nombre de grupo
+  const groupNameEl = $('home-group-name');
+  const codeEl = $('home-code');
+  const amigoNameEl = $('home-amigo-name');
+  if (groupNameEl) {
+    if (mesa.nombre) { groupNameEl.textContent = mesa.nombre; groupNameEl.style.display = 'block'; }
+    else groupNameEl.style.display = 'none';
+  }
+  if (codeEl) codeEl.textContent = mesa.codigo;
+  if (amigoNameEl) amigoNameEl.textContent = `👤 ${state.nombre}`;
+
+  // Ronda
+  const rondaLabelEl = $('home-ronda-label');
+  const rondaNumEl = $('home-ronda-num');
+  if (rondaLabelEl) rondaLabelEl.textContent = abierta ? 'Estás en la RONDA' : 'RONDA FINALIZADA';
+  if (rondaNumEl) rondaNumEl.textContent = ronda;
+
+  // Botón pedidos
+  const btnPedidos = $('btn-home-pedidos');
+  if (btnPedidos) {
+    btnPedidos.disabled = !abierta;
+    btnPedidos.onclick = () => { renderOrderScreen(); showScreen('order'); };
+  }
+
+  // Botón historial
+  const btnHistorial = $('btn-home-historial');
+  if (btnHistorial) {
+    btnHistorial.onclick = openHistorialModal;
+  }
+
+  // Botón catálogo
+  const btnCatalogo = $('btn-home-catalogo');
+  if (btnCatalogo) {
+    btnCatalogo.onclick = openCatalogoModal;
+  }
+}
+
+function openCatalogoModal() {
+  const modal = $('catalogo-modal');
+  const list = $('catalogo-list');
+  if (!modal || !list) return;
+
+  const allDrinks = getAllDrinks();
+  list.innerHTML = '';
+
+  const categories = ['Cerveza','Vino','Cóctel','Spirits','Licores','Sin alcohol','Aperitivos'];
+  categories.forEach((cat) => {
+    const catDrinks = allDrinks.filter((d) => d.category === cat);
+    if (!catDrinks.length) return;
+
+    const header = document.createElement('div');
+    header.style.cssText = 'color:var(--gold);font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin:12px 0 4px;';
+    header.textContent = cat;
+    list.appendChild(header);
+
+    catDrinks.forEach((drink) => {
+      const price = drink.price ?? 0;
+      const item = document.createElement('div');
+      item.className = 'catalogo-item';
+      item.innerHTML = `
+        <span class="catalogo-item-emoji">${drink.emoji}</span>
+        <span class="catalogo-item-name">${drink.name}</span>
+        <span class="catalogo-item-price">${price.toFixed(2).replace('.', ',')} €</span>
+      `;
+      list.appendChild(item);
+    });
+  });
+
+  $('btn-catalogo-close').onclick = () => { modal.style.display = 'none'; };
+  modal.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
+  modal.style.display = 'flex';
+}
+
+async function openHistorialModal() {
+  const modal = $('historial-modal');
+  const list = $('historial-list');
+  if (!modal || !list) return;
+
+  list.innerHTML = '<div style="color:#666;text-align:center;padding:20px">Cargando...</div>';
+  modal.style.display = 'flex';
+
+  try {
+    const { data: pedidos } = await sb
+      .from('pedidos')
+      .select('*, miembros(nombre)')
+      .eq('mesa_id', state.mesa.id)
+      .eq('estado', 'confirmado');
+
+    list.innerHTML = '';
+
+    if (!pedidos || !pedidos.length) {
+      list.innerHTML = '<div style="color:#666;text-align:center;padding:20px">No hay pedidos confirmados aún</div>';
+    } else {
+      // Agrupar por miembro
+      const byMember = {};
+      pedidos.forEach((p) => {
+        const nombre = p.miembros?.nombre || 'Desconocido';
+        if (!byMember[nombre]) byMember[nombre] = [];
+        byMember[nombre].push(p);
+      });
+
+      Object.entries(byMember).forEach(([nombre, ps]) => {
+        const block = document.createElement('div');
+        block.className = 'historial-member';
+        let html = `<div class="historial-member-name">👤 ${nombre}</div>`;
+        ps.forEach((p) => {
+          const label = p.drink_name + (p.marca ? ` — ${p.marca}` : '');
+          html += `<div class="historial-drink-row">
+            <span>${p.drink_emoji}</span>
+            <span>${label}</span>
+            <span>×${p.cantidad}</span>
+          </div>`;
+        });
+        block.innerHTML = html;
+        list.appendChild(block);
+      });
+    }
+  } catch (e) {
+    list.innerHTML = '<div style="color:#666;text-align:center;padding:20px">Error al cargar</div>';
+  }
+
+  $('btn-historial-close').onclick = () => { modal.style.display = 'none'; };
+  modal.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
 }
 
 // ─── Pantalla de pedido ───────────────────────────────────────────────────────
@@ -435,11 +572,12 @@ function renderOrderScreen() {
   renderCategories();
   renderDrinks();
 
-  const lanzada = state.mesa.estado === 'lanzada';
-  $('btn-confirmar').disabled = lanzada;
+  $('btn-confirmar').disabled = false;
   $('btn-confirmar').textContent = '✓  Confirmar pedido';
   $('btn-confirmar').onclick = handleConfirmar;
   $('btn-eliminar-seleccion').onclick = handleEliminarSeleccion;
+  const btnOrderVolver = $('btn-order-volver');
+  if (btnOrderVolver) btnOrderVolver.onclick = () => { renderHomeScreen(); showScreen('home'); };
 
   // Etiqueta de ronda
   const ronda = state.mesa.ronda ?? 1;
@@ -857,9 +995,17 @@ function subscribeRealtime() {
         await renderReparto();
         showScreen('reparto');
       } else if (state.mesa.estado === 'abierta') {
-        renderOrderScreen();
-        showScreen('order');
+        const currentScreen = document.querySelector('.screen.active');
+        if (currentScreen && currentScreen.id === 'screen-home') {
+          renderHomeScreen();
+        } else {
+          renderOrderScreen();
+          showScreen('order');
+        }
       }
+      // Actualizar ronda en home si está visible
+      const homeActive = document.getElementById('screen-home')?.classList.contains('active');
+      if (homeActive) renderHomeScreen();
     })
     .subscribe();
 }
