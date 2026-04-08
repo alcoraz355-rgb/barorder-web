@@ -528,12 +528,7 @@ function renderHomeScreen() {
         if (emoji) emoji.textContent = '👋';
       }
       showScreen('closed');
-      setTimeout(() => {
-        state.miembro = null; state.nombre = null;
-        state.quantities = {}; state.brandSelections = {};
-        $('input-nombre').value = '';
-        showScreen('join');
-      }, 2000);
+      setTimeout(() => { window.close(); }, 2000);
     };
   }
 
