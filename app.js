@@ -995,17 +995,17 @@ function subscribeRealtime() {
         await renderReparto();
         showScreen('reparto');
       } else if (state.mesa.estado === 'abierta') {
-        const currentScreen = document.querySelector('.screen.active');
-        if (currentScreen && currentScreen.id === 'screen-home') {
+        const currentScreenId = document.querySelector('.screen.active')?.id;
+        if (currentScreenId === 'screen-home') {
           renderHomeScreen();
-        } else {
+        } else if (currentScreenId === 'screen-order' || currentScreenId === 'screen-confirmed') {
           renderOrderScreen();
-          showScreen('order');
+        } else {
+          // desde reparto o loading → ir a home
+          renderHomeScreen();
+          showScreen('home');
         }
       }
-      // Actualizar ronda en home si está visible
-      const homeActive = document.getElementById('screen-home')?.classList.contains('active');
-      if (homeActive) renderHomeScreen();
     })
     .subscribe();
 }
