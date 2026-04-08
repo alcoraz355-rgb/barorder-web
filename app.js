@@ -500,8 +500,12 @@ function renderHomeScreen() {
   // Botón salir
   const btnSalir = $('btn-home-salir');
   if (btnSalir) {
-    btnSalir.onclick = () => {
-      if (!confirm('¿Seguro que quieres salir del grupo? Tus pedidos quedan registrados pero no podrás volver a entrar con el mismo nombre.')) return;
+    btnSalir.onclick = async () => {
+      if (!confirm('¿Seguro que quieres salir del grupo? Tus pedidos quedan registrados pero ya no podrás volver a entrar.')) return;
+      // Borrar miembro de Supabase (pedidos quedan guardados)
+      if (state.miembro?.id) {
+        await sb.from('miembros').delete().eq('id', state.miembro.id);
+      }
       // Limpiar sesión y canal
       localStorage.removeItem(SESSION_KEY);
       if (state.channel) { state.channel.unsubscribe(); state.channel = null; }
@@ -521,6 +525,12 @@ function renderHomeScreen() {
         if (emoji) emoji.textContent = '👋';
       }
       showScreen('closed');
+      setTimeout(() => {
+        state.miembro = null; state.nombre = null;
+        state.quantities = {}; state.brandSelections = {};
+        $('input-nombre').value = '';
+        showScreen('join');
+      }, 2000);
     };
   }
 
