@@ -675,7 +675,7 @@ async function showResumenScreen() {
       Object.entries(porRonda).sort(([a],[b]) => a-b).forEach(([rondaNum, rPeds]) => {
         const header = document.createElement('div');
         header.style.cssText = 'display:flex;align-items:center;gap:8px;margin:12px 0 6px';
-        header.innerHTML = `<span style="color:#9090FF;font-size:15px;font-weight:900">Ronda Nº ${rondaNum}</span>
+        header.innerHTML = `<span style="color:#9090FF;font-size:19px;font-weight:900">Ronda Nº ${rondaNum}</span>
           <div style="flex:1;height:1px;background:#9090FF;opacity:0.4"></div>`;
         list.appendChild(header);
 
@@ -684,10 +684,10 @@ async function showResumenScreen() {
           const row = document.createElement('div');
           row.className = 'historial-drink-row';
           row.innerHTML = `
-            <span>${p.drink_emoji}</span>
-            <span style="flex:1">${p.drink_name}${p.marca ? ' · ' + p.marca : ''}</span>
-            <span style="color:#999">×${p.cantidad}</span>
-            <span style="color:var(--gold);margin-left:8px">${precio.toFixed(2)} €</span>
+            <span style="font-size:22px">${p.drink_emoji}</span>
+            <span style="flex:1;font-size:17px">${p.drink_name}${p.marca ? ' · ' + p.marca : ''}</span>
+            <span style="color:#999;font-size:16px">×${p.cantidad}</span>
+            <span style="color:var(--gold);margin-left:8px;font-size:16px;font-weight:700">${precio.toFixed(2)} €</span>
           `;
           list.appendChild(row);
         });
