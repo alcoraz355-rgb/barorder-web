@@ -615,12 +615,11 @@ async function showResumenScreen() {
   showScreen('resumen');
 
   try {
-    const { data: pedidos } = await sb
-      .from('pedidos')
-      .select('*')
-      .eq('mesa_id', state.mesa.id)
-      .eq('miembro_id', state.miembro.id)
-      .eq('estado', 'confirmado');
+    const [{ data: pedidos }, { data: todosLosPedidos }, { data: miembros }] = await Promise.all([
+      sb.from('pedidos').select('*').eq('mesa_id', state.mesa.id).eq('miembro_id', state.miembro.id).eq('estado', 'confirmado'),
+      sb.from('pedidos').select('*').eq('mesa_id', state.mesa.id).eq('estado', 'confirmado'),
+      sb.from('miembros').select('*').eq('mesa_id', state.mesa.id).order('created_at', { ascending: true }),
+    ]);
 
     list.innerHTML = '';
 
@@ -641,13 +640,36 @@ async function showResumenScreen() {
         porRonda[r].push(p);
       });
 
-      let totalMio = 0;
-      pedidos.forEach((p) => { totalMio += getPrice(p.drink_id) * p.cantidad; });
+      // Consumido: total de mis bebidas
+      let consumido = 0;
+      pedidos.forEach((p) => { consumido += getPrice(p.drink_id) * p.cantidad; });
+
+      // Pagado: rondas que me tocaron × total del grupo en esa ronda
+      const rondaActual = state.mesa.ronda ?? 1;
+      const miIdx = (miembros || []).findIndex((m) => m.id === state.miembro.id);
+      let pagado = 0;
+      if (miIdx >= 0 && miembros.length > 0) {
+        for (let r = 1; r <= rondaActual; r++) {
+          if ((r - 1) % miembros.length === miIdx) {
+            // Sumar todos los pedidos del grupo en esa ronda
+            const rPeds = (todosLosPedidos || []).filter((p) => (p.ronda_num ?? rondaActual) === r);
+            rPeds.forEach((p) => { pagado += getPrice(p.drink_id) * p.cantidad; });
+          }
+        }
+      }
 
       const totalBox = document.createElement('div');
-      totalBox.style.cssText = 'background:#1A1200;border:1px solid var(--gold);border-radius:12px;padding:12px;text-align:center;margin-bottom:14px;';
-      totalBox.innerHTML = `<div style="color:#999;font-size:11px;font-weight:700;letter-spacing:2px;margin-bottom:4px">MI TOTAL</div>
-        <div style="color:var(--gold);font-size:26px;font-weight:900">${totalMio.toFixed(2)} €</div>`;
+      totalBox.style.cssText = 'display:flex;gap:8px;margin-bottom:14px;';
+      totalBox.innerHTML = `
+        <div style="flex:1;background:#1A1200;border:1px solid var(--gold);border-radius:12px;padding:12px;text-align:center">
+          <div style="color:#999;font-size:10px;font-weight:700;letter-spacing:1px;margin-bottom:4px">CONSUMIDO</div>
+          <div style="color:var(--gold);font-size:22px;font-weight:900">${consumido.toFixed(2)} €</div>
+        </div>
+        <div style="flex:1;background:#0D1F0D;border:1px solid #44AA44;border-radius:12px;padding:12px;text-align:center">
+          <div style="color:#999;font-size:10px;font-weight:700;letter-spacing:1px;margin-bottom:4px">PAGADO</div>
+          <div style="color:#66DD66;font-size:22px;font-weight:900">${pagado.toFixed(2)} €</div>
+        </div>
+      `;
       list.appendChild(totalBox);
 
       Object.entries(porRonda).sort(([a],[b]) => a-b).forEach(([rondaNum, rPeds]) => {
