@@ -501,15 +501,18 @@ function renderHomeScreen() {
   const btnSalir = $('btn-home-salir');
   if (btnSalir) {
     btnSalir.onclick = async () => {
-      if (!confirm('¿Seguro que quieres salir del grupo? Tus pedidos quedan registrados pero ya no podrás volver a entrar.')) return;
-      // Borrar miembro de Supabase (pedidos quedan guardados)
-      if (state.miembro?.id) {
-        await sb.from('miembros').delete().eq('id', state.miembro.id);
-      }
-      // Limpiar sesión y canal
-      localStorage.removeItem(SESSION_KEY);
+      if (!confirm('¿Seguro que quieres salir del grupo? Tus pedidos quedan registrados.')) return;
+      // Desuscribir canales primero para evitar interferencias
       if (state.channel) { state.channel.unsubscribe(); state.channel = null; }
       if (state.chatChannel) { state.chatChannel.unsubscribe(); state.chatChannel = null; }
+      // Borrar miembro de Supabase (pedidos quedan guardados) y notificar al admin tocando la mesa
+      if (state.miembro?.id) {
+        await sb.from('miembros').delete().eq('id', state.miembro.id);
+        // Tocar la mesa para que el admin reciba evento realtime y actualice sus listas
+        await sb.from('mesas').update({ ronda: state.mesa.ronda ?? 1 }).eq('id', state.mesa.id);
+      }
+      // Limpiar sesión
+      localStorage.removeItem(SESSION_KEY);
       document.body.classList.remove('amigo-mode');
       document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#0D0D0D');
       const fab = $('chat-fab');
