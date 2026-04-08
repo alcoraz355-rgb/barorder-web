@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BarOrder — Configurar precios</title>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0D0D0D;
+      color: #EBEBEB;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+    }
+    .header {
+      background: #1A1A1A;
+      border-bottom: 1px solid #2A2A2A;
+      padding: 18px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .header-logo { font-size: 28px; }
+    .header-title { font-size: 20px; font-weight: 800; color: #D4A843; }
+    .header-sub { font-size: 13px; color: #666; margin-top: 2px; }
+    .container { max-width: 680px; margin: 0 auto; padding: 24px 16px 120px; }
+    .intro {
+      background: #1A1A1A;
+      border: 1px solid #2A2A2A;
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin-bottom: 24px;
+      font-size: 14px;
+      color: #999;
+      line-height: 1.6;
+    }
+    .intro strong { color: #D4A843; }
+    .category-title {
+      color: #D4A843;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin: 28px 0 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px solid #2A2A2A;
+    }
+    .drink-row {
+      display: flex;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #1E1E1E;
+      gap: 12px;
+    }
+    .drink-emoji { font-size: 20px; width: 32px; text-align: center; flex-shrink: 0; }
+    .drink-name { flex: 1; font-size: 15px; color: #EBEBEB; }
+    .drink-default { font-size: 12px; color: #555; margin-top: 2px; }
+    .price-input {
+      width: 80px;
+      background: #111;
+      border: 1px solid #2A2A2A;
+      border-radius: 8px;
+      color: #FFF;
+      font-size: 16px;
+      font-weight: 700;
+      padding: 8px 10px;
+      text-align: center;
+      outline: none;
+      flex-shrink: 0;
+    }
+    .price-input:focus { border-color: #D4A843; }
+    .price-euro { color: #555; font-size: 14px; flex-shrink: 0; }
+    .sticky-bottom {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: #0D0D0D;
+      border-top: 1px solid #2A2A2A;
+      padding: 16px 24px;
+      display: flex;
+      gap: 12px;
+    }
+    .btn-generate {
+      flex: 1;
+      background: #D4A843;
+      color: #000;
+      border: none;
+      border-radius: 12px;
+      padding: 16px;
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+      letter-spacing: 0.3px;
+    }
+    .btn-generate:hover { background: #E8B850; }
+    .btn-reset {
+      background: transparent;
+      color: #666;
+      border: 1px solid #2A2A2A;
+      border-radius: 12px;
+      padding: 16px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .btn-reset:hover { border-color: #444; color: #888; }
+
+    /* Modal del QR */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.85);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.active { display: flex; }
+    .modal-box {
+      background: #1A1A1A;
+      border: 1px solid #2A2A2A;
+      border-radius: 20px;
+      padding: 32px 28px;
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
+    }
+    .modal-title { color: #D4A843; font-size: 20px; font-weight: 800; margin-bottom: 6px; }
+    .modal-sub { color: #666; font-size: 13px; margin-bottom: 24px; line-height: 1.5; }
+    #qr-canvas {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 20px;
+    }
+    #qr-canvas canvas, #qr-canvas img {
+      border-radius: 8px;
+      background: #FFF;
+      padding: 12px;
+    }
+    .modal-btns { display: flex; gap: 10px; margin-top: 8px; }
+    .btn-print {
+      flex: 1;
+      background: #D4A843;
+      color: #000;
+      border: none;
+      border-radius: 10px;
+      padding: 14px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-close-modal {
+      flex: 1;
+      background: transparent;
+      color: #888;
+      border: 1px solid #333;
+      border-radius: 10px;
+      padding: 14px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    @media print {
+      .header, .sticky-bottom, .modal-btns, .intro { display: none !important; }
+      .modal-overlay { background: white; }
+      .modal-box { border: none; box-shadow: none; }
+      .modal-title, .modal-sub { color: #000 !important; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-logo">🍸</div>
+  <div>
+    <div class="header-title">BarOrder — Precios del bar</div>
+    <div class="header-sub">Configura los precios y genera el QR para tus clientes</div>
+  </div>
+</div>
+
+<div class="container">
+  <div class="intro">
+    <strong>¿Cómo funciona?</strong> Ajusta los precios de tu bar y pulsa <strong>Generar QR</strong>.
+    El admin de cada grupo escanea el QR desde la app y los precios se cargan automáticamente.
+    Imprime el QR y ponlo en la barra.
+  </div>
+
+  <div id="drinks-list"></div>
+</div>
+
+<div class="sticky-bottom">
+  <button class="btn-reset" onclick="resetPrices()">↺ Restablecer</button>
+  <button class="btn-generate" onclick="generateQr()">📱 Generar QR de precios</button>
+</div>
+
+<!-- Modal QR -->
+<div class="modal-overlay" id="qr-modal">
+  <div class="modal-box">
+    <div class="modal-title">📱 QR de precios listo</div>
+    <div class="modal-sub">El admin escanea este QR desde BarOrder<br>y los precios se cargan automáticamente</div>
+    <div id="qr-canvas"></div>
+    <div class="modal-btns">
+      <button class="btn-print" onclick="window.print()">🖨️ Imprimir</button>
+      <button class="btn-close-modal" onclick="closeModal()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const DRINKS_DATA = [
+  { category: '🍺 Cerveza', items: [
+    { id: 'c1',  emoji: '🍺', name: 'Cerveza',      def: 2.50 },
+    { id: 'c2',  emoji: '🍺', name: 'Cerveza sin',  def: 2.50 },
+    { id: 'c3',  emoji: '🍋', name: 'Clara',         def: 2.50 },
+    { id: 'c4',  emoji: '🍻', name: 'Jarra',         def: 5.00 },
+    { id: 'c5',  emoji: '🍋', name: '0,0 limón',     def: 2.00 },
+    { id: 'c6',  emoji: '🍺', name: 'IPA',           def: 3.50 },
+    { id: 'c7',  emoji: '🍺', name: 'Tostada',       def: 2.50 },
+    { id: 'c8',  emoji: '🍺', name: 'Trigo',         def: 3.00 },
+    { id: 'c9',  emoji: '🍋', name: 'Radler',        def: 2.50 },
+  ]},
+  { category: '🍷 Vino', items: [
+    { id: 'v1',  emoji: '🍷', name: 'Vino tinto',   def: 3.00 },
+    { id: 'v2',  emoji: '🥂', name: 'Vino blanco',  def: 3.00 },
+    { id: 'v3',  emoji: '🍾', name: 'Vino rosado',  def: 3.00 },
+    { id: 'v4',  emoji: '🍷', name: 'Sangría',      def: 3.50 },
+    { id: 'v5',  emoji: '🥂', name: 'Cava',         def: 4.00 },
+    { id: 'v6',  emoji: '🍸', name: 'Vermut',       def: 2.50 },
+    { id: 'v7',  emoji: '🥂', name: 'Fino',         def: 2.50 },
+    { id: 'v8',  emoji: '🥂', name: 'Manzanilla',   def: 2.50 },
+    { id: 'v9',  emoji: '🍷', name: 'Lambrusco',    def: 3.00 },
+    { id: 'v10', emoji: '🥂', name: 'Prosecco',     def: 4.00 },
+  ]},
+  { category: '🍸 Cóctel', items: [
+    { id: 'k1',  emoji: '🍃', name: 'Mojito',            def: 8.00 },
+    { id: 'k2',  emoji: '🫧', name: 'Gin tonic',         def: 8.00 },
+    { id: 'k3',  emoji: '🍓', name: 'Daiquiri',          def: 7.00 },
+    { id: 'k4',  emoji: '🍋', name: 'Margarita',         def: 8.00 },
+    { id: 'k5',  emoji: '🍍', name: 'Piña colada',       def: 8.00 },
+    { id: 'k6',  emoji: '🍊', name: 'Aperol Spritz',     def: 7.00 },
+    { id: 'k7',  emoji: '🍸', name: 'Negroni',           def: 8.00 },
+    { id: 'k8',  emoji: '🥃', name: 'Cuba libre',        def: 6.00 },
+    { id: 'k9',  emoji: '🍷', name: 'Tinto de verano',   def: 3.50 },
+    { id: 'k10', emoji: '🥂', name: 'Rebujito',          def: 3.50 },
+    { id: 'k11', emoji: '🍅', name: 'Bloody Mary',       def: 7.00 },
+    { id: 'k12', emoji: '🍸', name: 'Cosmopolitan',      def: 8.00 },
+    { id: 'k13', emoji: '🍈', name: 'Caipirinha',        def: 8.00 },
+    { id: 'k14', emoji: '🍑', name: 'Sex on the Beach',  def: 8.00 },
+    { id: 'k15', emoji: '🫚', name: 'Moscow Mule',       def: 8.00 },
+    { id: 'k16', emoji: '🥃', name: 'Old Fashioned',     def: 9.00 },
+    { id: 'k17', emoji: '🍋', name: 'Whisky Sour',       def: 8.00 },
+  ]},
+  { category: '🥃 Spirits', items: [
+    { id: 's1', emoji: '🥃', name: 'Whisky',  def: 6.00 },
+    { id: 's2', emoji: '🥃', name: 'Ron',     def: 6.00 },
+    { id: 's3', emoji: '🍸', name: 'Vodka',   def: 6.00 },
+    { id: 's4', emoji: '🌿', name: 'Ginebra', def: 7.00 },
+    { id: 's5', emoji: '🥃', name: 'Tequila', def: 6.00 },
+    { id: 's6', emoji: '🥃', name: 'Brandy',  def: 5.00 },
+    { id: 's7', emoji: '🥃', name: 'Chupito', def: 2.00 },
+  ]},
+  { category: '🍶 Licores', items: [
+    { id: 'l1', emoji: '🥛', name: 'Baileys',      def: 4.00 },
+    { id: 'l2', emoji: '🦌', name: 'Jägermeister', def: 3.00 },
+    { id: 'l3', emoji: '☕', name: 'Licor café',   def: 3.00 },
+    { id: 'l4', emoji: '🫐', name: 'Pacharán',     def: 3.00 },
+    { id: 'l5', emoji: '🍇', name: 'Orujo',        def: 3.00 },
+    { id: 'l6', emoji: '🥜', name: 'Amaretto',     def: 4.00 },
+    { id: 'l7', emoji: '🌰', name: 'Frangelico',   def: 4.00 },
+    { id: 'l8', emoji: '🍊', name: 'Cointreau',    def: 4.00 },
+  ]},
+  { category: '💧 Sin alcohol', items: [
+    { id: 'n1',  emoji: '💧', name: 'Agua',             def: 1.50 },
+    { id: 'n13', emoji: '🫧', name: 'Agua con gas',     def: 2.00 },
+    { id: 'n2',  emoji: '🥤', name: 'Coca-Cola',        def: 2.50 },
+    { id: 'n3',  emoji: '🥤', name: 'Cola light',       def: 2.50 },
+    { id: 'n14', emoji: '🥤', name: 'Cola zero',        def: 2.50 },
+    { id: 'n4',  emoji: '🍊', name: 'Fanta naranja',    def: 2.50 },
+    { id: 'n5',  emoji: '🍋', name: 'Fanta limón',      def: 2.50 },
+    { id: 'n12', emoji: '🫧', name: 'Tónica',           def: 2.50 },
+    { id: 'n15', emoji: '🫧', name: 'Gaseosa',          def: 1.50 },
+    { id: 'n16', emoji: '🍹', name: 'Bitter',           def: 2.50 },
+    { id: 'n17', emoji: '🍋', name: 'Aquarius limón',   def: 2.50 },
+    { id: 'n18', emoji: '🍊', name: 'Aquarius naranja', def: 2.50 },
+    { id: 'n9',  emoji: '🍊', name: 'Zumo naranja',     def: 2.50 },
+    { id: 'n19', emoji: '🍑', name: 'Zumo melocotón',   def: 2.00 },
+    { id: 'n20', emoji: '🍍', name: 'Zumo piña',        def: 2.00 },
+    { id: 'n21', emoji: '🍅', name: 'Zumo tomate',      def: 2.00 },
+    { id: 'n22', emoji: '🍏', name: 'Zumo manzana',     def: 2.00 },
+    { id: 'n23', emoji: '🍇', name: 'Mosto tinto',      def: 2.00 },
+    { id: 'n24', emoji: '🍇', name: 'Mosto blanco',     def: 2.00 },
+    { id: 'n7',  emoji: '🍋', name: 'Limonada',         def: 3.00 },
+    { id: 'n25', emoji: '🥛', name: 'Horchata',         def: 2.50 },
+    { id: 'n8',  emoji: '⚡', name: 'Red Bull',         def: 4.00 },
+    { id: 'n26', emoji: '⚡', name: 'Monster',          def: 4.00 },
+    { id: 'n27', emoji: '🧊', name: 'Nestea',           def: 2.50 },
+    { id: 'n6',  emoji: '🧋', name: 'Té frío',          def: 2.50 },
+    { id: 'n10', emoji: '☕', name: 'Café',             def: 1.80 },
+    { id: 'n11', emoji: '🍵', name: 'Té',               def: 2.00 },
+    { id: 'n32', emoji: '🍵', name: 'Manzanilla',       def: 2.00 },
+    { id: 'n33', emoji: '🍵', name: 'Poleo menta',      def: 2.00 },
+    { id: 'n34', emoji: '🍵', name: 'Tila',             def: 2.00 },
+    { id: 'n35', emoji: '🍫', name: 'Batido chocolate', def: 3.50 },
+    { id: 'n36', emoji: '🍓', name: 'Batido fresa',     def: 3.50 },
+    { id: 'n37', emoji: '🍦', name: 'Batido vainilla',  def: 3.50 },
+    { id: 'n38', emoji: '🍧', name: 'Granizado limón',  def: 3.00 },
+    { id: 'n39', emoji: '🍧', name: 'Granizado café',   def: 3.00 },
+  ]},
+  { category: '🍽️ Aperitivos', items: [
+    { id: 'ap1',  emoji: '🍟', name: 'Patatas fritas',    def: 3.00 },
+    { id: 'ap2',  emoji: '🫒', name: 'Olivas',            def: 2.50 },
+    { id: 'ap3',  emoji: '🥒', name: 'Pepinillos',        def: 2.50 },
+    { id: 'ap4',  emoji: '🍳', name: 'Revuelto',          def: 7.00 },
+    { id: 'ap5',  emoji: '🍤', name: 'Gambas rebozadas',  def: 8.00 },
+    { id: 'ap6',  emoji: '🦑', name: 'Calamares',         def: 8.00 },
+    { id: 'ap7',  emoji: '🍞', name: 'Tostadas',          def: 3.00 },
+    { id: 'ap8',  emoji: '🍽', name: 'Tapas',             def: 4.00 },
+    { id: 'ap9',  emoji: '🧀', name: 'Nachos',            def: 5.00 },
+    { id: 'ap10', emoji: '🟤', name: 'Croquetas',         def: 6.00 },
+    { id: 'ap11', emoji: '🥓', name: 'Jamón ibérico',     def: 12.00 },
+    { id: 'ap12', emoji: '🧀', name: 'Queso curado',      def: 8.00 },
+    { id: 'ap13', emoji: '🥗', name: 'Ensaladilla rusa',  def: 5.00 },
+    { id: 'ap14', emoji: '🌶', name: 'Pimientos padrón',  def: 5.00 },
+    { id: 'ap15', emoji: '🐟', name: 'Boquerones',        def: 7.00 },
+    { id: 'ap16', emoji: '🥖', name: 'Montaditos',        def: 5.00 },
+    { id: 'ap17', emoji: '🥩', name: 'Tabla embutidos',   def: 14.00 },
+    { id: 'ap18', emoji: '🍗', name: 'Alitas de pollo',   def: 8.00 },
+    { id: 'ap19', emoji: '🧅', name: 'Aros de cebolla',   def: 5.00 },
+    { id: 'ap20', emoji: '🍅', name: 'Pan con tomate',    def: 3.00 },
+    { id: 'ap21', emoji: '🥚', name: 'Tortilla española', def: 5.00 },
+    { id: 'ap22', emoji: '🦪', name: 'Mejillones',        def: 6.00 },
+    { id: 'ap23', emoji: '🐙', name: 'Pulpo',             def: 12.00 },
+    { id: 'ap24', emoji: '🐟', name: 'Anchoas',           def: 7.00 },
+    { id: 'ap25', emoji: '🥜', name: 'Frutos secos',      def: 2.50 },
+  ]},
+];
+
+// Render the list
+function renderDrinks() {
+  const container = document.getElementById('drinks-list');
+  container.innerHTML = '';
+  DRINKS_DATA.forEach(cat => {
+    const catEl = document.createElement('div');
+    catEl.className = 'category-title';
+    catEl.textContent = cat.category;
+    container.appendChild(catEl);
+    cat.items.forEach(d => {
+      const row = document.createElement('div');
+      row.className = 'drink-row';
+      row.innerHTML = `
+        <span class="drink-emoji">${d.emoji}</span>
+        <div class="drink-name">${d.name}<div class="drink-default">Por defecto: ${d.def.toFixed(2)} €</div></div>
+        <input class="price-input" type="number" step="0.10" min="0" max="999"
+          id="price-${d.id}" value="${d.def.toFixed(2)}" />
+        <span class="price-euro">€</span>
+      `;
+      container.appendChild(row);
+    });
+  });
+}
+
+function resetPrices() {
+  DRINKS_DATA.forEach(cat => {
+    cat.items.forEach(d => {
+      const el = document.getElementById('price-' + d.id);
+      if (el) el.value = d.def.toFixed(2);
+    });
+  });
+}
+
+function generateQr() {
+  const prices = {};
+  DRINKS_DATA.forEach(cat => {
+    cat.items.forEach(d => {
+      const el = document.getElementById('price-' + d.id);
+      const val = parseFloat(el?.value || d.def);
+      prices[d.id] = isNaN(val) ? d.def : Math.round(val * 100) / 100;
+    });
+  });
+
+  const payload = 'BARORDER_PRICES:' + JSON.stringify(prices);
+
+  const canvas = document.getElementById('qr-canvas');
+  canvas.innerHTML = '';
+
+  QRCode.toCanvas(document.createElement('canvas'), payload, {
+    width: 260,
+    margin: 2,
+    color: { dark: '#000000', light: '#FFFFFF' },
+    errorCorrectionLevel: 'M',
+  }, function(err, canvasEl) {
+    if (err) {
+      alert('Error generando QR: ' + err.message);
+      return;
+    }
+    canvas.appendChild(canvasEl);
+    document.getElementById('qr-modal').classList.add('active');
+  });
+}
+
+function closeModal() {
+  document.getElementById('qr-modal').classList.remove('active');
+}
+
+// Close modal clicking outside
+document.getElementById('qr-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+renderDrinks();
+</script>
+</body>
+</html>
