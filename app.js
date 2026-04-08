@@ -453,8 +453,10 @@ function renderHomeScreen() {
   if (amigoNameEl) amigoNameEl.textContent = `👤 ${state.nombre}`;
 
   // Ronda
+  const rondaBoxEl = $('home-ronda-box');
   const rondaLabelEl = $('home-ronda-label');
   const rondaNumEl = $('home-ronda-num');
+  if (rondaBoxEl) rondaBoxEl.classList.toggle('abierta', abierta);
   if (rondaLabelEl) rondaLabelEl.textContent = abierta ? 'Estás en la RONDA' : 'RONDA FINALIZADA';
   if (rondaNumEl) rondaNumEl.textContent = ronda;
 

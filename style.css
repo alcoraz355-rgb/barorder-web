@@ -117,7 +117,9 @@ html, body {
   margin-top: 8px;
   margin-bottom: 12px;
 }
-.home-ronda-box.abierta { background: #444; }
+.home-ronda-box.abierta { background: var(--gold); }
+.home-ronda-box.abierta .home-ronda-text,
+.home-ronda-box.abierta .home-ronda-num { color: #000; }
 .home-ronda-text { color: #999; font-size: 17px; font-weight: 800; }
 .home-ronda-num  { color: #999; font-size: 26px; font-weight: 900; }
 .home-pagador-lines { width: 100%; display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
