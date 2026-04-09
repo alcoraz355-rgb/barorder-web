@@ -90,7 +90,8 @@ body.amigo-mode #screen-reparto { background: var(--bg-amigo); }
 body.amigo-mode .order-sticky-header { background: var(--bg-amigo); }
 body.amigo-mode .top-bar { background: var(--bg-amigo); border-bottom-color: #7a2a3e; }
 body.amigo-mode .search-bar { background: var(--bg-amigo); }
-body.amigo-mode .search-bar input { background: #4a3020; border-color: #7a2a3e; }
+body.amigo-mode .search-bar input,
+body.amigo-mode #search-input { background: #4a3020 !important; border-color: #7a2a3e !important; }
 body.amigo-mode .category-scroll { background: var(--bg-amigo); }
 body.amigo-mode .drinks-grid { background: var(--bg-amigo); }
 body.amigo-mode .section-header-wrap { background: var(--bg-amigo); }
@@ -398,6 +399,8 @@ button {
 .drinks-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
+  grid-auto-rows: minmax(130px, auto);
+  align-items: start;
   gap: 8px;
   padding: 8px 10px 110px;
   flex: 1;
@@ -441,9 +444,11 @@ button {
   align-items: center;
   gap: 4px;
   min-height: 130px;
+  height: auto;
   justify-content: flex-start;
   position: relative;
   transition: border-color .15s;
+  overflow: visible;
 }
 .drink-card.active {
   border-color: var(--gold);
