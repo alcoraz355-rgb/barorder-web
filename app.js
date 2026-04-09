@@ -914,11 +914,21 @@ function makeDrinkCard(drink) {
   inner += `</div>`;
 
   if (active && selections.length > 0) {
-    inner += `<div class="selection-tags">`;
+    // Agrupar selecciones iguales: "Mahou Tercio ×2" en vez de dos tags
+    const grouped = {};
     selections.forEach((sel) => {
-      if (sel) inner += `<div class="sel-tag">${sel}</div>`;
+      const key = sel || '';
+      if (key) grouped[key] = (grouped[key] || 0) + 1;
     });
-    inner += `</div>`;
+    const keys = Object.keys(grouped);
+    if (keys.length > 0) {
+      inner += `<div class="selection-tags">`;
+      keys.forEach((sel) => {
+        const cnt = grouped[sel];
+        inner += `<div class="sel-tag">${sel}${cnt > 1 ? ' ×' + cnt : ''}</div>`;
+      });
+      inner += `</div>`;
+    }
   }
 
   card.innerHTML = inner;
