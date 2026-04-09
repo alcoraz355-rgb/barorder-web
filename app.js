@@ -389,10 +389,11 @@ async function init() {
       const title = el.querySelector('.closed-title');
       const sub   = el.querySelector('.closed-sub');
       if (emoji) emoji.textContent = '🚫';
-      if (title) title.textContent = 'Acceso eliminado';
-      if (sub)   sub.textContent   = 'El administrador te ha eliminado del grupo. Pídele que te vuelva a invitar con un nuevo enlace.';
+      if (title) title.textContent = 'Sin acceso';
+      if (sub)   sub.textContent   = 'No tienes acceso a este grupo.';
     }
     showScreen('closed');
+    setTimeout(() => { window.location.href = '/'; }, 2000);
     return;
   }
 
@@ -404,10 +405,11 @@ async function init() {
       const title = el.querySelector('.closed-title');
       const sub   = el.querySelector('.closed-sub');
       if (emoji) emoji.textContent = '🔒';
-      if (title) title.textContent = 'Acceso bloqueado';
-      if (sub)   sub.textContent   = 'El administrador ha bloqueado el acceso al grupo. Pídele que lo vuelva a abrir.';
+      if (title) title.textContent = 'Sin acceso';
+      if (sub)   sub.textContent   = 'No tienes acceso a este grupo.';
     }
     showScreen('closed');
+    setTimeout(() => { window.location.href = '/'; }, 2000);
     return;
   }
 
@@ -1219,6 +1221,27 @@ function subscribeRealtime() {
   if (state.channel) return;
 
   state.channel = sb.channel(`web_mesa_${state.mesa.id}`)
+    .on('postgres_changes', {
+      event: 'UPDATE', schema: 'public', table: 'miembros',
+      filter: `id=eq.${state.miembro.id}`,
+    }, (payload) => {
+      const nuevoNombre = payload.new?.nombre || '';
+      if (nuevoNombre.startsWith('[SALIDO] ')) {
+        localStorage.removeItem(SESSION_KEY);
+        localStorage.setItem(`barorder_blocked_${state.mesa.codigo}`, '1');
+        const el = $('screen-closed');
+        if (el) {
+          const emoji = el.querySelector('.closed-emoji');
+          const title = el.querySelector('.closed-title');
+          const sub   = el.querySelector('.closed-sub');
+          if (emoji) emoji.textContent = '🚫';
+          if (title) title.textContent = 'Sin acceso';
+          if (sub)   sub.textContent   = 'No tienes acceso a este grupo.';
+        }
+        showScreen('closed');
+        setTimeout(() => { window.location.href = '/'; }, 2000);
+      }
+    })
     .on('postgres_changes', {
       event: '*', schema: 'public', table: 'mesas',
       filter: `id=eq.${state.mesa.id}`,
