@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0D0D0D" />
+  <title>Política de Privacidad — BarOrder</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: #0D0D0D;
+      color: #F5F5F5;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      line-height: 1.7;
+      padding: 24px 20px 60px;
+      max-width: 760px;
+      margin: 0 auto;
+    }
+    h1 { color: #D4A843; font-size: 26px; font-weight: 900; margin-bottom: 6px; }
+    .logo { font-size: 36px; margin-bottom: 8px; }
+    .date { color: #666; font-size: 13px; margin-bottom: 32px; }
+    h2 { color: #D4A843; font-size: 17px; font-weight: 700; margin: 28px 0 10px; }
+    p  { color: #CCC; margin-bottom: 12px; }
+    ul { color: #CCC; padding-left: 20px; margin-bottom: 12px; }
+    li { margin-bottom: 6px; }
+    a  { color: #D4A843; }
+    .card {
+      background: #1A1A1A;
+      border: 1px solid #333;
+      border-radius: 14px;
+      padding: 18px 20px;
+      margin-bottom: 20px;
+    }
+    .highlight { color: #D4A843; font-weight: 700; }
+    .footer { color: #444; font-size: 12px; text-align: center; margin-top: 40px; }
+    .lang-switch { text-align: right; margin-bottom: 16px; }
+    .lang-switch a { color: #888; font-size: 13px; text-decoration: none; border: 1px solid #333; padding: 4px 10px; border-radius: 8px; }
+  </style>
+</head>
+<body>
+
+  <div class="lang-switch">
+    <a href="#english">🇬🇧 English version below</a>
+  </div>
+
+  <div class="logo">🍸</div>
+  <h1>Política de Privacidad</h1>
+  <p class="date">Última actualización: abril 2025 · BarOrder v3.0</p>
+
+  <div class="card">
+    <p><span class="highlight">BarOrder</span> es una aplicación para gestionar pedidos colaborativos en bares y restaurantes. Nos tomamos muy en serio tu privacidad. Esta política explica qué datos recogemos, para qué y cómo los protegemos.</p>
+  </div>
+
+  <h2>1. Datos que recopilamos</h2>
+  <ul>
+    <li><strong>Nombre de usuario:</strong> el nombre que escribes al unirte a un grupo (apodo, nombre real o cualquier nombre). No requerimos email ni contraseña.</li>
+    <li><strong>Nombre del grupo:</strong> el nombre que el administrador da al grupo.</li>
+    <li><strong>Pedidos realizados:</strong> las bebidas y aperitivos que seleccionas dentro de la sesión.</li>
+    <li><strong>Mensajes de chat:</strong> los mensajes enviados en el chat interno del grupo.</li>
+  </ul>
+  <p>No recogemos: dirección de correo, contraseñas, número de teléfono, ubicación, datos de pago, historial de navegación ni ningún identificador personal.</p>
+
+  <h2>2. Cómo usamos los datos</h2>
+  <ul>
+    <li>Mostrar los pedidos en tiempo real a todos los miembros del grupo.</li>
+    <li>Calcular totales y rondas de pago dentro de la sesión.</li>
+    <li>Permitir el chat interno del grupo durante la sesión.</li>
+  </ul>
+  <p>Los datos <strong>no se usan para publicidad</strong>, no se venden a terceros y no se emplean para ningún análisis externo.</p>
+
+  <h2>3. Almacenamiento y retención</h2>
+  <p>Los datos de cada sesión (grupo, miembros, pedidos, chat) se almacenan en <strong>Supabase</strong> (proveedor de base de datos en la nube, con servidores en la UE). Los datos se eliminan automáticamente cuando el administrador cierra el grupo. El tiempo de vida máximo de una sesión activa sin cerrarse es de 24 horas.</p>
+  <p>En tu dispositivo, la aplicación guarda localmente (AsyncStorage) únicamente el identificador de sesión y las preferencias del catálogo. Estos datos también se eliminan al cerrar el grupo o al cerrar sesión.</p>
+
+  <h2>4. Terceros</h2>
+  <ul>
+    <li><strong>Supabase</strong> (supabase.com) — base de datos y tiempo real. Política de privacidad: <a href="https://supabase.com/privacy" target="_blank">supabase.com/privacy</a></li>
+    <li><strong>Vercel</strong> (vercel.com) — alojamiento de la web companion. Política de privacidad: <a href="https://vercel.com/legal/privacy-policy" target="_blank">vercel.com/legal/privacy-policy</a></li>
+    <li><strong>Expo / React Native</strong> — framework de la aplicación móvil. No envía datos propios del usuario a Expo.</li>
+  </ul>
+
+  <h2>5. Cámara</h2>
+  <p>La aplicación puede solicitar acceso a la cámara únicamente para escanear códigos QR de precios generados por el administrador del bar. La cámara se activa solo cuando el usuario abre manualmente el escáner y no graba ni transmite vídeo en ningún momento.</p>
+
+  <h2>6. Derechos del usuario</h2>
+  <p>Al ser una aplicación de sesiones temporales sin registro, no almacenamos datos vinculados a una identidad permanente. Si deseas que se eliminen los datos de una sesión antes de que expire, el administrador del grupo puede cerrar el grupo manualmente, lo que borra todos los datos inmediatamente.</p>
+
+  <h2>7. Seguridad</h2>
+  <p>Las comunicaciones entre la app y Supabase se realizan mediante HTTPS. Las claves de acceso a la base de datos están limitadas a operaciones de lectura/escritura dentro del mismo grupo (Row Level Security de Supabase).</p>
+
+  <h2>8. Contacto</h2>
+  <p>Si tienes preguntas sobre esta política de privacidad, puedes contactarnos en: <a href="mailto:barorderapp@gmail.com">barorderapp@gmail.com</a></p>
+
+  <hr style="border-color:#222;margin:48px 0 40px;" id="english" />
+
+  <!-- ENGLISH VERSION -->
+  <h1 style="margin-bottom:6px">Privacy Policy <span style="color:#888;font-size:18px;font-weight:400">(English)</span></h1>
+  <p class="date">Last updated: April 2025 · BarOrder v3.0</p>
+
+  <div class="card">
+    <p><span class="highlight">BarOrder</span> is an app for collaborative drink ordering at bars and restaurants. We take your privacy seriously. This policy explains what data we collect, why, and how we protect it.</p>
+  </div>
+
+  <h2>1. Data We Collect</h2>
+  <ul>
+    <li><strong>Username:</strong> the name you enter when joining a group (nickname, real name or any name). No email or password required.</li>
+    <li><strong>Group name:</strong> the name the administrator gives to the group.</li>
+    <li><strong>Orders placed:</strong> the drinks and snacks you select during the session.</li>
+    <li><strong>Chat messages:</strong> messages sent in the group's internal chat.</li>
+  </ul>
+  <p>We do NOT collect: email address, passwords, phone number, location, payment data, browsing history or any persistent personal identifier.</p>
+
+  <h2>2. How We Use Data</h2>
+  <ul>
+    <li>Display orders in real-time to all group members.</li>
+    <li>Calculate totals and round payment rotation within the session.</li>
+    <li>Enable in-session group chat.</li>
+  </ul>
+  <p>Data is <strong>never used for advertising</strong>, never sold to third parties, and never used for external analytics.</p>
+
+  <h2>3. Storage &amp; Retention</h2>
+  <p>Session data (group, members, orders, chat) is stored in <strong>Supabase</strong> (cloud database provider with EU servers). Data is deleted automatically when the administrator closes the group. Maximum session lifetime without closing is 24 hours.</p>
+  <p>On your device, the app stores locally (AsyncStorage) only the session identifier and catalog preferences. These are also deleted when the group is closed or the user logs out.</p>
+
+  <h2>4. Third Parties</h2>
+  <ul>
+    <li><strong>Supabase</strong> (supabase.com) — database and real-time. Privacy policy: <a href="https://supabase.com/privacy" target="_blank">supabase.com/privacy</a></li>
+    <li><strong>Vercel</strong> (vercel.com) — web companion hosting. Privacy policy: <a href="https://vercel.com/legal/privacy-policy" target="_blank">vercel.com/legal/privacy-policy</a></li>
+    <li><strong>Expo / React Native</strong> — mobile app framework. No user data is sent to Expo.</li>
+  </ul>
+
+  <h2>5. Camera</h2>
+  <p>The app may request camera access solely to scan QR price codes generated by the bar administrator. The camera is activated only when the user manually opens the scanner and does not record or transmit video at any time.</p>
+
+  <h2>6. User Rights</h2>
+  <p>Since BarOrder uses temporary sessions without registration, no data is linked to a persistent identity. If you want data from a session deleted before it expires, the group administrator can close the group manually, which immediately deletes all data.</p>
+
+  <h2>7. Security</h2>
+  <p>Communication between the app and Supabase uses HTTPS. Database access keys are restricted to read/write operations within the same group (Supabase Row Level Security).</p>
+
+  <h2>8. Contact</h2>
+  <p>If you have questions about this privacy policy, contact us at: <a href="mailto:barorderapp@gmail.com">barorderapp@gmail.com</a></p>
+
+  <p class="footer">BarOrder · barorder-web.vercel.app/privacidad</p>
+</body>
+</html>
