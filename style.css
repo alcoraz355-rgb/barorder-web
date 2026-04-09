@@ -17,6 +17,7 @@
   --danger:     #E05555;
   --success:    #4CAF50;
   --green-bg:   #1DA462;
+  --bg-amigo:   #0D0D0D;
 }
 
 html, body {
@@ -79,6 +80,32 @@ html, body {
   padding: 0;
 }
 
+/* ── Modo amigo (fondo marrón) ──────────────────────────────── */
+body.amigo-mode { background: var(--bg-amigo); }
+body.amigo-mode .app { background: var(--bg-amigo); }
+body.amigo-mode #screen-home,
+body.amigo-mode #screen-order,
+body.amigo-mode #screen-confirmed,
+body.amigo-mode #screen-reparto { background: var(--bg-amigo); }
+body.amigo-mode .order-sticky-header { background: var(--bg-amigo); }
+body.amigo-mode .top-bar { background: var(--bg-amigo); border-bottom-color: #7a2a3e; }
+body.amigo-mode .search-bar { background: var(--bg-amigo); }
+body.amigo-mode .search-bar input { background: #4a3020; border-color: #7a2a3e; }
+body.amigo-mode .category-scroll { background: var(--bg-amigo); }
+body.amigo-mode .drinks-grid { background: var(--bg-amigo); }
+body.amigo-mode .section-header-wrap { background: var(--bg-amigo); }
+body.amigo-mode .fab-area { background: var(--bg-amigo); }
+body.amigo-mode .screen-reparto,
+body.amigo-mode .reparto-scroll { background: var(--bg-amigo); }
+body.amigo-mode .home-scroll,
+body.amigo-mode .home-container { background: var(--bg-amigo); }
+body.amigo-mode #catalogo-modal .modal-sheet,
+body.amigo-mode #historial-modal .modal-sheet { background: var(--bg-amigo); }
+body.amigo-mode #catalogo-modal .modal-drink-title,
+body.amigo-mode #historial-modal .modal-drink-title { color: var(--gold); }
+body.amigo-mode .catalogo-item { border-bottom-color: #4a3020; }
+body.amigo-mode .historial-member { background: #4a3020; }
+
 /* ── Home screen (amigo) ────────────────────────────────────── */
 #screen-home { overflow: hidden; }
 .home-scroll { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; }
@@ -139,9 +166,10 @@ html, body {
   cursor: pointer;
   background: transparent;
 }
-.home-btn-pedidos { border-color: #00BCD4; color: #fff; }
-.home-btn-pedidos:disabled { border-color: #444; color: #666; cursor: not-allowed; opacity: 0.5; }
-.home-btn-gold { border-color: var(--gold); color: var(--gold); }
+.home-btn-pedidos { border-color: var(--gold); color: #fff; background: #000; }
+.home-btn-pedidos:disabled { border-color: #444; color: #666; background: #000; cursor: not-allowed; opacity: 0.5; }
+.home-btn-gold { border-color: var(--gold); color: var(--gold); background: #000; }
+.home-btn-salir { border-color: var(--danger); color: var(--danger); background: #000; margin-top: 8px; }
 
 /* Modales info (catálogo e historial) */
 .info-modal-sheet {
@@ -413,7 +441,7 @@ button {
   align-items: center;
   gap: 4px;
   min-height: 130px;
-  justify-content: space-between;
+  justify-content: flex-start;
   position: relative;
   transition: border-color .15s;
 }
@@ -442,7 +470,7 @@ button {
   line-height: 1.3;
   word-break: break-word;
 }
-.drink-controls { display: flex; gap: 6px; margin-top: 2px; }
+.drink-controls { display: flex; gap: 6px; margin-top: auto; padding-top: 4px; }
 .btn-minus, .btn-plus {
   width: 28px; height: 28px;
   border-radius: 50%;
