@@ -355,9 +355,11 @@ async function init() {
 
   const saved = loadSession(mesaCodigo);
 
+  const BLOCKED_KEY = `barorder_blocked_${mesaCodigo}`;
+
   if (saved) {
     const { data: miembro } = await sb.from('miembros').select('*').eq('id', saved.miembroId).single();
-    if (miembro) {
+    if (miembro && !miembro.nombre.startsWith('[SALIDO] ')) {
       state.miembro = miembro;
       state.nombre  = miembro.nombre;
       document.body.classList.add('amigo-mode');
@@ -374,12 +376,45 @@ async function init() {
       }
       return;
     }
+    // Miembro eliminado o salido → bloquear este navegador para este grupo
+    localStorage.removeItem(SESSION_KEY);
+    localStorage.setItem(BLOCKED_KEY, '1');
+  }
+
+  // Navegador bloqueado de este grupo (fue eliminado por el admin o salió)
+  if (localStorage.getItem(BLOCKED_KEY)) {
+    const el = $('screen-closed');
+    if (el) {
+      const emoji = el.querySelector('.closed-emoji');
+      const title = el.querySelector('.closed-title');
+      const sub   = el.querySelector('.closed-sub');
+      if (emoji) emoji.textContent = '🚫';
+      if (title) title.textContent = 'Acceso eliminado';
+      if (sub)   sub.textContent   = 'El administrador te ha eliminado del grupo. Pídele que te vuelva a invitar con un nuevo enlace.';
+    }
+    showScreen('closed');
+    return;
+  }
+
+  // Grupo bloqueado por el admin (no admite nuevos miembros)
+  if (mesa.bloqueada) {
+    const el = $('screen-closed');
+    if (el) {
+      const emoji = el.querySelector('.closed-emoji');
+      const title = el.querySelector('.closed-title');
+      const sub   = el.querySelector('.closed-sub');
+      if (emoji) emoji.textContent = '🔒';
+      if (title) title.textContent = 'Acceso bloqueado';
+      if (sub)   sub.textContent   = 'El administrador ha bloqueado el acceso al grupo. Pídele que lo vuelva a abrir.';
+    }
+    showScreen('closed');
+    return;
   }
 
   const nombreGrupo = mesa.nombre || mesaCodigo;
   $('join-mesa-text').textContent = `"${nombreGrupo}" — ¿Cuál es tu nombre?`;
-  $('btn-join').addEventListener('click', handleJoin);
-  $('input-nombre').addEventListener('keydown', (e) => { if (e.key === 'Enter') handleJoin(); });
+  $('btn-join').addEventListener('click', () => handleJoin(BLOCKED_KEY));
+  $('input-nombre').addEventListener('keydown', (e) => { if (e.key === 'Enter') handleJoin(BLOCKED_KEY); });
   showScreen('join');
 }
 
@@ -405,7 +440,7 @@ async function cargarPedidosExistentes() {
 }
 
 // ─── Unirse a la mesa ─────────────────────────────────────────────────────────
-async function handleJoin() {
+async function handleJoin(blockedKey) {
   const nombre = $('input-nombre').value.trim();
   if (!nombre) { $('input-nombre').focus(); return; }
 
@@ -413,6 +448,21 @@ async function handleJoin() {
   $('btn-join').textContent = '...';
 
   try {
+    // Comprobar que el grupo sigue abierto al momento de unirse
+    const { data: mesaCheck } = await sb.from('mesas').select('bloqueada, estado').eq('id', state.mesa.id).single();
+    if (mesaCheck?.bloqueada) {
+      $('btn-join').disabled = false;
+      $('btn-join').textContent = 'Entrar a la mesa →';
+      alert('El administrador ha bloqueado el acceso al grupo. Pídele que lo vuelva a abrir.');
+      return;
+    }
+    if (mesaCheck?.estado === 'cerrada') {
+      $('btn-join').disabled = false;
+      $('btn-join').textContent = 'Entrar a la mesa →';
+      alert('Esta mesa ya está cerrada.');
+      return;
+    }
+
     // Comprobar que el nombre no existe ya en el grupo (activo o salido)
     const { data: existing } = await sb.from('miembros').select('nombre').eq('mesa_id', state.mesa.id);
     const nombresBloqueados = (existing || []).map((m) => m.nombre.replace(/^\[SALIDO\] /, '').toLowerCase());
@@ -481,9 +531,10 @@ function renderHomeScreen() {
   if (pagadorLinesEl) {
     sb.from('miembros').select('nombre').eq('mesa_id', mesa.id).order('created_at', { ascending: true })
       .then(({ data }) => {
-        if (data && data.length > 0) {
-          const pagador = data[(ronda - 1) % data.length];
-          const sigPagador = data[ronda % data.length];
+        const activos = (data || []).filter((m) => !m.nombre.startsWith('[SALIDO] '));
+        if (activos.length > 0) {
+          const pagador = activos[(ronda - 1) % activos.length];
+          const sigPagador = activos[ronda % activos.length];
           const sigRonda = ronda + 1;
           $('home-pagador-ronda-num').textContent = ronda;
           $('home-pagador-nombre').textContent = pagador.nombre;
@@ -658,11 +709,12 @@ async function showResumenScreen() {
   showScreen('resumen');
 
   try {
-    const [{ data: pedidos }, { data: todosLosPedidos }, { data: miembros }] = await Promise.all([
+    const [{ data: pedidos }, { data: todosLosPedidos }, { data: todosMiembros }] = await Promise.all([
       sb.from('pedidos').select('*').eq('mesa_id', state.mesa.id).eq('miembro_id', state.miembro.id).eq('estado', 'confirmado'),
       sb.from('pedidos').select('*').eq('mesa_id', state.mesa.id).eq('estado', 'confirmado'),
       sb.from('miembros').select('*').eq('mesa_id', state.mesa.id).order('created_at', { ascending: true }),
     ]);
+    const miembros = (todosMiembros || []).filter((m) => !m.nombre.startsWith('[SALIDO] '));
 
     list.innerHTML = '';
 
@@ -771,8 +823,9 @@ function renderOrderScreen() {
   if (pagadorEl) {
     sb.from('miembros').select('nombre').eq('mesa_id', state.mesa.id).order('created_at', { ascending: true })
       .then(({ data }) => {
-        if (data && data.length > 0) {
-          const pagador = data[(ronda - 1) % data.length];
+        const activos = (data || []).filter((m) => !m.nombre.startsWith('[SALIDO] '));
+        if (activos.length > 0) {
+          const pagador = activos[(ronda - 1) % activos.length];
           pagadorEl.textContent = `Paga: ${pagador.nombre}`;
           pagadorEl.style.display = 'block';
         }
