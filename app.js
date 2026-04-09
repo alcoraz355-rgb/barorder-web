@@ -803,6 +803,8 @@ async function showResumenScreen() {
 // ─── Pantalla de pedido ───────────────────────────────────────────────────────
 function renderOrderScreen() {
   $('order-mesa-code').textContent = state.mesa.nombre || state.mesa.codigo;
+  const nombreLabel = $('order-nombre-label');
+  if (nombreLabel && state.nombre) nombreLabel.textContent = 'Pedido de ' + state.nombre;
   renderCategories();
   renderDrinks();
 
@@ -812,8 +814,6 @@ function renderOrderScreen() {
   $('btn-eliminar-seleccion').onclick = handleEliminarSeleccion;
   const btnOrderVolver = $('btn-order-volver');
   if (btnOrderVolver) btnOrderVolver.onclick = () => { renderHomeScreen(); showScreen('home'); };
-  const btnOrderHome = $('btn-order-home');
-  if (btnOrderHome) btnOrderHome.onclick = () => { renderHomeScreen(); showScreen('home'); };
 
   // Etiqueta de ronda
   const ronda = state.mesa.ronda ?? 1;
