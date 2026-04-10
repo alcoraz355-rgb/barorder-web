@@ -355,8 +355,6 @@ async function init() {
 
   const saved = loadSession(mesaCodigo);
 
-  const BLOCKED_KEY = `barorder_blocked_${mesaCodigo}`;
-
   if (saved) {
     const { data: miembro } = await sb.from('miembros').select('*').eq('id', saved.miembroId).single();
     if (miembro && !miembro.nombre.startsWith('[SALIDO] ')) {
@@ -376,25 +374,8 @@ async function init() {
       }
       return;
     }
-    // Miembro eliminado o salido → bloquear este navegador para este grupo
+    // Sesión antigua con miembro eliminado o salido → limpiar y mostrar pantalla de unirse
     localStorage.removeItem(SESSION_KEY);
-    localStorage.setItem(BLOCKED_KEY, '1');
-  }
-
-  // Navegador bloqueado de este grupo (fue eliminado por el admin o salió)
-  if (localStorage.getItem(BLOCKED_KEY)) {
-    const el = $('screen-closed');
-    if (el) {
-      const emoji = el.querySelector('.closed-emoji');
-      const title = el.querySelector('.closed-title');
-      const sub   = el.querySelector('.closed-sub');
-      if (emoji) emoji.textContent = '🚫';
-      if (title) title.textContent = 'Sin acceso';
-      if (sub)   sub.textContent   = 'No tienes acceso a este grupo.';
-    }
-    showScreen('closed');
-    setTimeout(() => { window.location.href = '/'; }, 2000);
-    return;
   }
 
   // Grupo bloqueado por el admin (no admite nuevos miembros)
@@ -415,8 +396,8 @@ async function init() {
 
   const nombreGrupo = mesa.nombre || mesaCodigo;
   $('join-mesa-text').textContent = `"${nombreGrupo}" — ¿Cuál es tu nombre?`;
-  $('btn-join').addEventListener('click', () => handleJoin(BLOCKED_KEY));
-  $('input-nombre').addEventListener('keydown', (e) => { if (e.key === 'Enter') handleJoin(BLOCKED_KEY); });
+  $('btn-join').addEventListener('click', () => handleJoin());
+  $('input-nombre').addEventListener('keydown', (e) => { if (e.key === 'Enter') handleJoin(); });
   showScreen('join');
 }
 
@@ -442,7 +423,7 @@ async function cargarPedidosExistentes() {
 }
 
 // ─── Unirse a la mesa ─────────────────────────────────────────────────────────
-async function handleJoin(blockedKey) {
+async function handleJoin() {
   const nombre = $('input-nombre').value.trim();
   if (!nombre) { $('input-nombre').focus(); return; }
 
@@ -1227,16 +1208,18 @@ function subscribeRealtime() {
     }, (payload) => {
       const nuevoNombre = payload.new?.nombre || '';
       if (nuevoNombre.startsWith('[SALIDO] ')) {
+        if (state.channel) { state.channel.unsubscribe(); state.channel = null; }
+        if (state.chatChannel) { state.chatChannel.unsubscribe(); state.chatChannel = null; }
         localStorage.removeItem(SESSION_KEY);
-        localStorage.setItem(`barorder_blocked_${state.mesa.codigo}`, '1');
+        document.body.classList.remove('amigo-mode');
         const el = $('screen-closed');
         if (el) {
           const emoji = el.querySelector('.closed-emoji');
           const title = el.querySelector('.closed-title');
           const sub   = el.querySelector('.closed-sub');
-          if (emoji) emoji.textContent = '🚫';
-          if (title) title.textContent = 'Sin acceso';
-          if (sub)   sub.textContent   = 'No tienes acceso a este grupo.';
+          if (emoji) emoji.textContent = '👋';
+          if (title) title.textContent = '¡Hasta la próxima!';
+          if (sub)   sub.textContent   = 'Has salido del grupo. ¡Que aproveche! 🍻';
         }
         showScreen('closed');
         setTimeout(() => { window.location.href = '/'; }, 2000);
