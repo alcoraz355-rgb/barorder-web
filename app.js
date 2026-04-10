@@ -364,6 +364,7 @@ async function init() {
       document.querySelector('meta[name="theme-color"]')?.setAttribute('content', '#0D0D0D');
       await cargarPedidosExistentes();
       subscribeRealtime();
+      startPollingEliminacion();
       await initChat();
       if (mesa.estado === 'lanzada') {
         await renderReparto();
@@ -533,7 +534,7 @@ function renderHomeScreen() {
   if (btnSalir) {
     btnSalir.onclick = async () => {
       if (!confirm('¿Seguro que quieres salir del grupo? Tus pedidos quedan registrados.')) return;
-      // Desuscribir canales primero para evitar interferencias
+      stopPollingEliminacion();
       if (state.channel) { state.channel.unsubscribe(); state.channel = null; }
       if (state.chatChannel) { state.chatChannel.unsubscribe(); state.chatChannel = null; }
       // Marcar miembro como salido (preserva pedidos y datos de rondas)
@@ -1202,28 +1203,16 @@ function subscribeRealtime() {
   if (state.channel) return;
 
   state.channel = sb.channel(`web_mesa_${state.mesa.id}`)
+    .on('broadcast', { event: 'kick' }, (payload) => {
+      if (payload.payload?.miembroId === state.miembro?.id) _mostrarDespedida();
+    })
     .on('postgres_changes', {
       event: 'UPDATE', schema: 'public', table: 'miembros',
-      filter: `id=eq.${state.miembro.id}`,
+      filter: `mesa_id=eq.${state.mesa.id}`,
     }, (payload) => {
+      if (payload.new?.id !== state.miembro?.id) return;
       const nuevoNombre = payload.new?.nombre || '';
-      if (nuevoNombre.startsWith('[SALIDO] ')) {
-        if (state.channel) { state.channel.unsubscribe(); state.channel = null; }
-        if (state.chatChannel) { state.chatChannel.unsubscribe(); state.chatChannel = null; }
-        localStorage.removeItem(SESSION_KEY);
-        document.body.classList.remove('amigo-mode');
-        const el = $('screen-closed');
-        if (el) {
-          const emoji = el.querySelector('.closed-emoji');
-          const title = el.querySelector('.closed-title');
-          const sub   = el.querySelector('.closed-sub');
-          if (emoji) emoji.textContent = '👋';
-          if (title) title.textContent = '¡Hasta la próxima!';
-          if (sub)   sub.textContent   = 'Has salido del grupo. ¡Que aproveche! 🍻';
-        }
-        showScreen('closed');
-        setTimeout(() => { window.location.href = '/'; }, 2000);
-      }
+      if (nuevoNombre.startsWith('[SALIDO] ')) _mostrarDespedida();
     })
     .on('postgres_changes', {
       event: '*', schema: 'public', table: 'mesas',
@@ -1261,6 +1250,61 @@ function subscribeRealtime() {
       }
     })
     .subscribe();
+
+  // iOS suspende tabs en background → al volver, comprobar si el miembro fue eliminado
+  document.removeEventListener('visibilitychange', _checkEliminado);
+  window.removeEventListener('pageshow', _checkEliminado);
+  window.removeEventListener('focus', _checkEliminado);
+  document.addEventListener('visibilitychange', _checkEliminado);
+  window.addEventListener('pageshow', _checkEliminado);
+  window.addEventListener('focus', _checkEliminado);
+}
+
+function _mostrarDespedida() {
+  if (!state.miembro) return;
+  state.miembro = null; // evitar doble disparo
+  stopPollingEliminacion();
+  if (state.channel) { state.channel.unsubscribe(); state.channel = null; }
+  if (state.chatChannel) { state.chatChannel.unsubscribe(); state.chatChannel = null; }
+  localStorage.removeItem(SESSION_KEY);
+  document.body.classList.remove('amigo-mode');
+  document.removeEventListener('visibilitychange', _checkEliminado);
+  window.removeEventListener('pageshow', _checkEliminado);
+  window.removeEventListener('focus', _checkEliminado);
+  const el = $('screen-closed');
+  if (el) {
+    const emoji = el.querySelector('.closed-emoji');
+    const title = el.querySelector('.closed-title');
+    const sub   = el.querySelector('.closed-sub');
+    if (emoji) emoji.textContent = '👋';
+    if (title) title.textContent = '¡Hasta la próxima!';
+    if (sub)   sub.textContent   = 'Has salido del grupo. ¡Que aproveche! 🍻';
+  }
+  showScreen('closed');
+  setTimeout(() => { window.location.reload(); }, 2000);
+}
+
+async function _checkEliminado() {
+  if (document.visibilityState !== 'visible') return;
+  if (!state.miembro?.id) return;
+  const { data: m } = await sb.from('miembros').select('nombre').eq('id', state.miembro.id).single();
+  if (!m || m.nombre.startsWith('[SALIDO] ')) _mostrarDespedida();
+}
+
+let _pollingInterval = null;
+function startPollingEliminacion() {
+  if (_pollingInterval) return;
+  _pollingInterval = setInterval(async () => {
+    if (!state.miembro?.id) { stopPollingEliminacion(); return; }
+    const { data: m } = await sb.from('miembros').select('nombre').eq('id', state.miembro.id).single();
+    if (!m || m.nombre.startsWith('[SALIDO] ')) {
+      stopPollingEliminacion();
+      _mostrarDespedida();
+    }
+  }, 5000);
+}
+function stopPollingEliminacion() {
+  if (_pollingInterval) { clearInterval(_pollingInterval); _pollingInterval = null; }
 }
 
 // ─── Chat ─────────────────────────────────────────────────────────────────────
