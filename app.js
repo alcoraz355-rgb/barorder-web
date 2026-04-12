@@ -1162,7 +1162,6 @@ function renderConfirmed() {
 
   list.appendChild(card);
 
-  $('btn-modificar').onclick = handleModificar;
   const btnConfirmedHome = $('btn-confirmed-home');
   if (btnConfirmedHome) btnConfirmedHome.onclick = () => { renderHomeScreen(); showScreen('home'); };
   $('btn-borrar').onclick = handleBorrar;
@@ -1320,8 +1319,10 @@ function subscribeRealtime() {
         const currentScreenId = document.querySelector('.screen.active')?.id;
         if (currentScreenId === 'screen-home') {
           renderHomeScreen();
+          showScreen('home');
         } else if (currentScreenId === 'screen-order' || currentScreenId === 'screen-confirmed') {
-          renderOrderScreen();
+          renderHomeScreen();
+          showScreen('home');
         } else {
           // desde reparto o loading → ir a home
           renderHomeScreen();
@@ -1366,9 +1367,30 @@ function _mostrarDespedida() {
 
 async function _checkEliminado() {
   if (document.visibilityState !== 'visible') return;
-  if (!state.miembro?.id) return;
+  if (!state.miembro?.id || !state.mesa?.id) return;
+
+  // Comprobar si fue eliminado
   const { data: m } = await sb.from('miembros').select('nombre').eq('id', state.miembro.id).single();
-  if (!m || m.nombre.startsWith('[SALIDO] ')) _mostrarDespedida();
+  if (!m || m.nombre.startsWith('[SALIDO] ')) { _mostrarDespedida(); return; }
+
+  // Recargar estado de la mesa por si se perdieron eventos realtime (ej. iOS suspendió el tab)
+  const { data: mesaFresh } = await sb.from('mesas').select('*').eq('id', state.mesa.id).single();
+  if (!mesaFresh) return;
+  state.mesa = { ...state.mesa, ...mesaFresh };
+
+  const currentScreenId = document.querySelector('.screen.active')?.id;
+
+  if (state.mesa.estado === 'cerrada') {
+    showClosedByAdmin();
+  } else if (state.mesa.estado === 'lanzada') {
+    if (currentScreenId !== 'screen-reparto') { await renderReparto(); showScreen('reparto'); }
+  } else if (state.mesa.estado === 'abierta') {
+    if (currentScreenId === 'screen-reparto' || currentScreenId === 'screen-loading') {
+      renderHomeScreen(); showScreen('home');
+    } else if (currentScreenId === 'screen-home') {
+      renderHomeScreen();
+    }
+  }
 }
 
 let _pollingInterval = null;
