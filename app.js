@@ -597,7 +597,15 @@ function showCatalogoSelector() {
     const btn1 = document.createElement('button');
     btn1.style.cssText = 'width:100%;padding:16px;border-radius:14px;border:2px solid var(--gold);background:#000;color:var(--gold);font-size:16px;font-weight:800;cursor:pointer;margin-bottom:10px;';
     btn1.textContent = '📋  Catálogo por defecto';
-    btn1.onclick = () => { modal.style.display = 'none'; showCatalogoScreen(DRINKS, 'Catálogo por defecto'); };
+    btn1.onclick = () => {
+      modal.style.display = 'none';
+      // Aplicar precios personalizados del admin sobre el catálogo base
+      const drinksConPrecios = DRINKS.map((d) => ({
+        ...d,
+        price: state.prices[d.id] !== undefined ? state.prices[d.id] : (d.defaultPrice ?? 0),
+      }));
+      showCatalogoScreen(drinksConPrecios, 'Catálogo por defecto');
+    };
     list.appendChild(btn1);
 
     // Opción 2: catálogo del bar
@@ -606,7 +614,17 @@ function showCatalogoSelector() {
     btn2.style.cssText = `width:100%;padding:16px;border-radius:14px;border:2px solid var(--gold);background:#000;color:var(--gold);font-size:16px;font-weight:800;cursor:pointer;margin-bottom:10px;opacity:${barDrinks ? 1 : 0.4};`;
     btn2.textContent = '🍺  Catálogo del Bar';
     btn2.disabled = !barDrinks;
-    btn2.onclick = () => { if (barDrinks) { modal.style.display = 'none'; showCatalogoScreen(barDrinks, 'Catálogo del Bar'); } };
+    btn2.onclick = () => {
+      if (barDrinks) {
+        modal.style.display = 'none';
+        // Aplicar precios personalizados del admin sobre el catálogo del bar
+        const barConPrecios = barDrinks.map((d) => ({
+          ...d,
+          price: state.prices[d.id] !== undefined ? state.prices[d.id] : (d.price ?? d.defaultPrice ?? 0),
+        }));
+        showCatalogoScreen(barConPrecios, 'Catálogo del Bar');
+      }
+    };
     list.appendChild(btn2);
 
     if (!barDrinks) {
