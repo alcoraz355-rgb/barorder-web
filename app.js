@@ -575,10 +575,17 @@ function renderHomeScreen() {
     btnHistorial.onclick = showResumenScreen;
   }
 
-  // Botón catálogo — muestra directamente el catálogo activo del admin
+  // Botón catálogo — carga datos frescos de Supabase y muestra el catálogo activo del admin
   const btnCatalogo = $('btn-home-catalogo');
   if (btnCatalogo) {
-    btnCatalogo.onclick = () => {
+    btnCatalogo.onclick = async () => {
+      try {
+        const { data: mesaFresh } = await sb.from('mesas').select('custom_drinks, custom_prices').eq('id', state.mesa.id).single();
+        if (mesaFresh) {
+          if (mesaFresh.custom_drinks) state.customDrinks = mesaFresh.custom_drinks;
+          if (mesaFresh.custom_prices) state.prices = mesaFresh.custom_prices;
+        }
+      } catch {}
       const drinks = (state.customDrinks && state.customDrinks.length > 0)
         ? state.customDrinks.map((d) => ({
             ...d,
