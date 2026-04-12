@@ -1020,6 +1020,13 @@ async function handleConfirmar() {
     const { error } = await sb.from('pedidos').insert(rows);
     if (error) throw error;
 
+    // Guardar en historial local en el momento de confirmar
+    const pedidosParaHistorial = rows.map((r) => ({
+      drink_id: r.drink_id, drink_name: r.drink_name,
+      drink_emoji: r.drink_emoji, cantidad: r.cantidad, marca: r.marca,
+    }));
+    guardarHistorialRonda(pedidosParaHistorial, state.mesa.ronda ?? 1);
+
     // Si la mesa estaba lanzada, volver a abrirla para indicar nuevos pedidos
     if (state.mesa.estado === 'lanzada') {
       await sb.from('mesas').update({ estado: 'abierta' }).eq('id', state.mesa.id);
