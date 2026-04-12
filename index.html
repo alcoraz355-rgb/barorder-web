@@ -86,7 +86,7 @@
     <div class="order-sticky-header">
       <div class="top-bar">
         <div style="display:flex;flex-direction:column;align-items:flex-start;gap:2px">
-          <button id="btn-order-home" style="background:transparent;border:none;color:var(--gold);font-size:14px;font-weight:700;cursor:pointer;padding:0">← Inicio</button>
+          <span id="order-nombre-label" style="color:#fff;font-size:13px;font-weight:700;line-height:1.2"></span>
           <div class="logo-title"><span>🍸</span><h1>BarOrder</h1></div>
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
@@ -115,13 +115,11 @@
   <!-- ── PANTALLA: Pedido confirmado ───────────────────────────── -->
   <div id="screen-confirmed" class="screen">
     <div class="top-bar">
-      <div style="display:flex;flex-direction:column;align-items:flex-start;gap:2px">
-        <button id="btn-confirmed-home" style="background:transparent;border:none;color:var(--gold);font-size:14px;font-weight:700;cursor:pointer;padding:0">← Inicio</button>
-        <div class="logo-title"><span>🍸</span><h1>BarOrder</h1></div>
-      </div>
+      <div class="logo-title"><span>🍸</span><h1>BarOrder</h1></div>
       <div style="display:flex;align-items:center;gap:8px">
         <div class="mesa-badge" id="conf-mesa-code">—</div>
         <div class="ronda-badge" id="conf-ronda-badge">🔄 Ronda 1</div>
+        <button id="btn-confirmed-home" style="background:transparent;border:none;color:var(--gold);font-size:15px;font-weight:700;cursor:pointer">← Inicio</button>
       </div>
     </div>
 
@@ -134,7 +132,7 @@
     <div class="confirmed-drinks" id="confirmed-drinks-list"></div>
 
     <div class="fab-area">
-      <button class="btn-secondary" id="btn-modificar">←  Volver a Pedidos</button>
+      <button class="btn-secondary" id="btn-modificar">← Volver</button>
       <button class="btn-danger"    id="btn-borrar">🗑  Borrar mi pedido</button>
     </div>
   </div>
@@ -160,7 +158,7 @@
       </div>
     </div>
     <div class="fab-area">
-      <button class="btn-secondary" id="btn-volver-pedido">← Volver a mi pedido</button>
+      <button class="btn-secondary" id="btn-volver-pedido">← Volver</button>
     </div>
   </div>
 
