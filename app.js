@@ -575,10 +575,21 @@ function renderHomeScreen() {
     btnHistorial.onclick = showResumenScreen;
   }
 
-  // Botón catálogo
+  // Botón catálogo — muestra directamente el catálogo activo del admin
   const btnCatalogo = $('btn-home-catalogo');
   if (btnCatalogo) {
-    btnCatalogo.onclick = showCatalogoSelector;
+    btnCatalogo.onclick = () => {
+      const drinks = (state.customDrinks && state.customDrinks.length > 0)
+        ? state.customDrinks.map((d) => ({
+            ...d,
+            price: state.prices[d.id] !== undefined ? state.prices[d.id] : (d.price ?? d.defaultPrice ?? 0),
+          }))
+        : DRINKS.map((d) => ({
+            ...d,
+            price: state.prices[d.id] !== undefined ? state.prices[d.id] : (d.defaultPrice ?? 0),
+          }));
+      showCatalogoScreen(drinks, 'Precios del bar');
+    };
   }
 }
 
