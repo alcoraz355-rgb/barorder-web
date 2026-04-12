@@ -693,90 +693,94 @@ async function showResumenScreen() {
   showScreen('resumen');
 
   try {
-    const [{ data: pedidos }, { data: todosLosPedidos }, { data: todosMiembros }] = await Promise.all([
-      sb.from('pedidos').select('*').eq('mesa_id', state.mesa.id).eq('miembro_id', state.miembro.id).eq('estado', 'confirmado'),
-      sb.from('pedidos').select('*').eq('mesa_id', state.mesa.id).eq('estado', 'confirmado'),
-      sb.from('miembros').select('*').eq('mesa_id', state.mesa.id).order('created_at', { ascending: true }),
-    ]);
-    const miembros = (todosMiembros || []).filter((m) => !m.nombre.startsWith('[SALIDO] '));
+    const allDrinks = getAllDrinks();
+    function getPrice(drinkId) {
+      const base = drinkId.split('|')[0];
+      return allDrinks.find((x) => x.id === base)?.price || 0;
+    }
+
+    // Cargar ronda actual de BD
+    const { data: pedidosActuales } = await sb
+      .from('pedidos').select('*')
+      .eq('mesa_id', state.mesa.id)
+      .eq('miembro_id', state.miembro.id)
+      .eq('estado', 'confirmado');
+
+    // Cargar historial de rondas anteriores desde localStorage
+    const historialLocal = cargarHistorialLocal();
+
+    // Construir mapa por ronda: historial local + ronda actual
+    const porRonda = {};
+    historialLocal.forEach(({ rondaNum, pedidos }) => {
+      porRonda[rondaNum] = pedidos;
+    });
+    // La ronda actual de BD sobreescribe si ya existia guardada
+    const rondaActual = state.mesa.ronda ?? 1;
+    if (pedidosActuales && pedidosActuales.length) {
+      porRonda[rondaActual] = pedidosActuales;
+    }
 
     list.innerHTML = '';
 
-    if (!pedidos || !pedidos.length) {
+    if (Object.keys(porRonda).length === 0) {
       list.innerHTML = '<div style="color:#666;text-align:center;padding:20px">No tienes pedidos confirmados aún</div>';
-    } else {
-      const allDrinks = getAllDrinks();
-      function getPrice(drinkId) {
-        const base = drinkId.split('|')[0];
-        return allDrinks.find((x) => x.id === base)?.price || 0;
-      }
-
-      // Agrupar por ronda
-      const porRonda = {};
-      pedidos.forEach((p) => {
-        const r = p.ronda_num ?? state.mesa.ronda ?? 1;
-        if (!porRonda[r]) porRonda[r] = [];
-        porRonda[r].push(p);
-      });
-
-      // Consumido: total de mis bebidas
-      let consumido = 0;
-      pedidos.forEach((p) => { consumido += getPrice(p.drink_id) * p.cantidad; });
-
-      // Pagado: rondas que me tocaron × total del grupo en esa ronda
-      const rondaActual = state.mesa.ronda ?? 1;
-      const miIdx = (miembros || []).findIndex((m) => m.id === state.miembro.id);
-      let pagado = 0;
-      if (miIdx >= 0 && miembros.length > 0) {
-        for (let r = 1; r <= rondaActual; r++) {
-          if ((r - 1) % miembros.length === miIdx) {
-            // Sumar todos los pedidos del grupo en esa ronda
-            const rPeds = (todosLosPedidos || []).filter((p) => (p.ronda_num ?? rondaActual) === r);
-            rPeds.forEach((p) => { pagado += getPrice(p.drink_id) * p.cantidad; });
-          }
-        }
-      }
-
-      const totalBox = document.createElement('div');
-      totalBox.style.cssText = 'display:flex;gap:8px;margin-bottom:14px;';
-      totalBox.innerHTML = `
-        <div style="flex:1;background:#1A1200;border:1px solid var(--gold);border-radius:12px;padding:12px;text-align:center">
-          <div style="color:#999;font-size:10px;font-weight:700;letter-spacing:1px;margin-bottom:4px">CONSUMIDO</div>
-          <div style="color:var(--gold);font-size:22px;font-weight:900">${consumido.toFixed(2)} €</div>
-        </div>
-        <div style="flex:1;background:#0D1F0D;border:1px solid #44AA44;border-radius:12px;padding:12px;text-align:center">
-          <div style="color:#999;font-size:10px;font-weight:700;letter-spacing:1px;margin-bottom:4px">PAGADO</div>
-          <div style="color:#66DD66;font-size:22px;font-weight:900">${pagado.toFixed(2)} €</div>
-        </div>
-      `;
-      list.appendChild(totalBox);
-
-      Object.entries(porRonda).sort(([a],[b]) => a-b).forEach(([rondaNum, rPeds]) => {
-        const header = document.createElement('div');
-        header.style.cssText = 'display:flex;align-items:center;gap:8px;margin:12px 0 6px';
-        header.innerHTML = `<span style="color:#9090FF;font-size:19px;font-weight:900">Ronda Nº ${rondaNum}</span>
-          <div style="flex:1;height:1px;background:#9090FF;opacity:0.4"></div>`;
-        list.appendChild(header);
-
-        rPeds.forEach((p) => {
-          const precio = getPrice(p.drink_id) * p.cantidad;
-          const row = document.createElement('div');
-          row.className = 'historial-drink-row';
-          row.innerHTML = `
-            <span style="font-size:22px">${p.drink_emoji}</span>
-            <span style="flex:1;font-size:17px">${p.drink_name}${p.marca ? ' · ' + p.marca : ''}</span>
-            <span style="color:#999;font-size:16px">×${p.cantidad}</span>
-            <span style="color:var(--gold);margin-left:8px;font-size:16px;font-weight:700">${precio.toFixed(2)} €</span>
-          `;
-          list.appendChild(row);
-        });
-      });
-
-      const note = document.createElement('div');
-      note.style.cssText = 'color:#555;text-align:center;font-size:12px;margin-top:16px;';
-      note.textContent = '* Precios orientativos';
-      list.appendChild(note);
+      return;
     }
+
+    // Total consumido (todas las rondas)
+    let consumido = 0;
+    Object.values(porRonda).forEach((peds) => {
+      peds.forEach((p) => { consumido += getPrice(p.drink_id) * p.cantidad; });
+    });
+
+    const totalBox = document.createElement('div');
+    totalBox.style.cssText = 'display:flex;gap:8px;margin-bottom:14px;';
+    totalBox.innerHTML = `
+      <div style="flex:1;background:#1A1200;border:1px solid var(--gold);border-radius:12px;padding:12px;text-align:center">
+        <div style="color:#999;font-size:10px;font-weight:700;letter-spacing:1px;margin-bottom:4px">TOTAL CONSUMIDO</div>
+        <div style="color:var(--gold);font-size:22px;font-weight:900">${consumido.toFixed(2)} €</div>
+      </div>
+      <div style="flex:1;background:#0D1200;border:1px solid #9090FF;border-radius:12px;padding:12px;text-align:center">
+        <div style="color:#999;font-size:10px;font-weight:700;letter-spacing:1px;margin-bottom:4px">RONDAS</div>
+        <div style="color:#9090FF;font-size:22px;font-weight:900">${Object.keys(porRonda).length}</div>
+      </div>
+    `;
+    list.appendChild(totalBox);
+
+    // Mostrar cada ronda
+    Object.entries(porRonda).sort(([a], [b]) => Number(a) - Number(b)).forEach(([rondaNum, rPeds]) => {
+      const header = document.createElement('div');
+      header.style.cssText = 'display:flex;align-items:center;gap:8px;margin:12px 0 6px';
+      header.innerHTML = `<span style="color:#9090FF;font-size:19px;font-weight:900">Ronda Nº ${rondaNum}</span>
+        <div style="flex:1;height:1px;background:#9090FF;opacity:0.4"></div>`;
+      list.appendChild(header);
+
+      let totalRonda = 0;
+      rPeds.forEach((p) => {
+        const precio = getPrice(p.drink_id) * p.cantidad;
+        totalRonda += precio;
+        const row = document.createElement('div');
+        row.className = 'historial-drink-row';
+        row.innerHTML = `
+          <span style="font-size:22px">${p.drink_emoji}</span>
+          <span style="flex:1;font-size:17px">${p.drink_name}${p.marca ? ' · ' + p.marca : ''}</span>
+          <span style="color:#999;font-size:16px">×${p.cantidad}</span>
+          <span style="color:var(--gold);margin-left:8px;font-size:16px;font-weight:700">${precio.toFixed(2)} €</span>
+        `;
+        list.appendChild(row);
+      });
+
+      const totalRondaEl = document.createElement('div');
+      totalRondaEl.style.cssText = 'text-align:right;color:#666;font-size:13px;margin-top:4px;padding-right:2px;';
+      totalRondaEl.textContent = `Subtotal ronda: ${totalRonda.toFixed(2)} €`;
+      list.appendChild(totalRondaEl);
+    });
+
+    const note = document.createElement('div');
+    note.style.cssText = 'color:#555;text-align:center;font-size:12px;margin-top:16px;';
+    note.textContent = '* Precios orientativos';
+    list.appendChild(note);
+
   } catch (e) {
     list.innerHTML = '<div style="color:#666;text-align:center;padding:20px">Error al cargar</div>';
   }
@@ -1142,6 +1146,24 @@ function handleEliminarSeleccion() {
   showScreen('order');
 }
 
+// ─── Historial local (localStorage) ──────────────────────────────────────────
+function _historialKey() {
+  return `@barorder_historial_${state.mesa.id}_${state.miembro.id}`;
+}
+function guardarHistorialRonda(pedidos, rondaNum) {
+  if (!state.miembro || !state.mesa || !pedidos || !pedidos.length) return;
+  let historial = [];
+  try { historial = JSON.parse(localStorage.getItem(_historialKey()) || '[]'); } catch {}
+  const idx = historial.findIndex((r) => r.rondaNum === rondaNum);
+  const entry = { rondaNum, pedidos };
+  if (idx >= 0) historial[idx] = entry;
+  else historial.push(entry);
+  localStorage.setItem(_historialKey(), JSON.stringify(historial));
+}
+function cargarHistorialLocal() {
+  try { return JSON.parse(localStorage.getItem(_historialKey()) || '[]'); } catch { return []; }
+}
+
 // ─── Vista de reparto ─────────────────────────────────────────────────────────
 async function renderReparto() {
   const rondaTagEl = document.getElementById('reparto-ronda-tag');
@@ -1153,6 +1175,11 @@ async function renderReparto() {
     .eq('mesa_id', state.mesa.id)
     .eq('estado', 'confirmado')
     .eq('miembro_id', state.miembro.id);
+
+  // Guardar en historial local antes de que el admin pueda borrarlos con nueva ronda
+  if (pedidos && pedidos.length) {
+    guardarHistorialRonda(pedidos, state.mesa.ronda ?? 1);
+  }
 
   const container = $('reparto-lines');
   container.innerHTML = '';
