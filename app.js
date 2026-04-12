@@ -580,21 +580,15 @@ function renderHomeScreen() {
   if (btnCatalogo) {
     btnCatalogo.onclick = async () => {
       try {
-        const { data: mesaFresh } = await sb.from('mesas').select('custom_drinks, custom_prices').eq('id', state.mesa.id).single();
-        if (mesaFresh) {
-          if (mesaFresh.custom_drinks) state.customDrinks = mesaFresh.custom_drinks;
-          if (mesaFresh.custom_prices) state.prices = mesaFresh.custom_prices;
+        const { data: mesaFresh } = await sb.from('mesas').select('custom_drinks').eq('id', state.mesa.id).single();
+        if (mesaFresh?.custom_drinks?.length) {
+          state.customDrinks = mesaFresh.custom_drinks;
         }
       } catch {}
+      // Usar directamente los precios que vienen en custom_drinks del admin
       const drinks = (state.customDrinks && state.customDrinks.length > 0)
-        ? state.customDrinks.map((d) => ({
-            ...d,
-            price: state.prices[d.id] !== undefined ? state.prices[d.id] : (d.price ?? d.defaultPrice ?? 0),
-          }))
-        : DRINKS.map((d) => ({
-            ...d,
-            price: state.prices[d.id] !== undefined ? state.prices[d.id] : (d.defaultPrice ?? 0),
-          }));
+        ? state.customDrinks.map((d) => ({ ...d, price: d.price ?? d.defaultPrice ?? 0 }))
+        : DRINKS.map((d) => ({ ...d, price: d.defaultPrice ?? 0 }));
       showCatalogoScreen(drinks, 'Precios del bar');
     };
   }
