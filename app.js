@@ -585,6 +585,7 @@ function renderHomeScreen() {
 // ─── Catálogo selector (dos opciones: por defecto / del bar) ─────────────────
 function showCatalogoSelector() {
   const hasBarCatalog = state.customDrinks && state.customDrinks.length > 0;
+  const adminMode = state.mesa?.catalog_mode || 'default'; // 'default' o 'bar'
   const modal = $('catalogo-modal');
   const list = $('catalogo-list');
   const catsEl = $('catalogo-cats');
@@ -593,16 +594,30 @@ function showCatalogoSelector() {
   if (catsEl) catsEl.innerHTML = '';
   if (list) {
     list.innerHTML = '';
+
+    // Etiqueta del catálogo activo del admin
+    const activoEl = document.createElement('div');
+    activoEl.style.cssText = 'color:#9090FF;font-size:13px;font-weight:700;text-align:center;margin-bottom:12px;letter-spacing:1px;';
+    activoEl.textContent = adminMode === 'bar' ? '✅ El bar usa: Catálogo del Bar' : '✅ El bar usa: Catálogo por defecto';
+    list.appendChild(activoEl);
+
     // Opción 1: catálogo por defecto
     const btn1 = document.createElement('button');
-    btn1.style.cssText = 'width:100%;padding:16px;border-radius:14px;border:2px solid var(--gold);background:#000;color:var(--gold);font-size:16px;font-weight:800;cursor:pointer;margin-bottom:10px;';
-    btn1.textContent = '📋  Catálogo por defecto';
+    const isDefaultActive = adminMode === 'default';
+    btn1.style.cssText = `width:100%;padding:16px;border-radius:14px;border:2px solid ${isDefaultActive ? '#9090FF' : 'var(--gold)'};background:${isDefaultActive ? '#0D0D1F' : '#000'};color:${isDefaultActive ? '#9090FF' : 'var(--gold)'};font-size:16px;font-weight:800;cursor:pointer;margin-bottom:10px;`;
+    btn1.textContent = (isDefaultActive ? '✅ ' : '📋  ') + 'Catálogo por defecto';
     btn1.onclick = () => {
       modal.style.display = 'none';
-      // Aplicar precios personalizados del admin sobre el catálogo base
+      // Construir mapa de precios desde el catálogo sincronizado por el admin
+      const preciosAdmin = {};
+      (state.customDrinks || []).forEach((d) => {
+        if (d.price !== undefined) preciosAdmin[d.id] = d.price;
+      });
       const drinksConPrecios = DRINKS.map((d) => ({
         ...d,
-        price: state.prices[d.id] !== undefined ? state.prices[d.id] : (d.defaultPrice ?? 0),
+        price: state.prices[d.id] !== undefined ? state.prices[d.id]
+              : preciosAdmin[d.id] !== undefined ? preciosAdmin[d.id]
+              : 0,
       }));
       showCatalogoScreen(drinksConPrecios, 'Catálogo por defecto');
     };
@@ -611,8 +626,9 @@ function showCatalogoSelector() {
     // Opción 2: catálogo del bar
     const btn2 = document.createElement('button');
     const barDrinks = hasBarCatalog ? state.customDrinks : null;
-    btn2.style.cssText = `width:100%;padding:16px;border-radius:14px;border:2px solid var(--gold);background:#000;color:var(--gold);font-size:16px;font-weight:800;cursor:pointer;margin-bottom:10px;opacity:${barDrinks ? 1 : 0.4};`;
-    btn2.textContent = '🍺  Catálogo del Bar';
+    const isBarActive = adminMode === 'bar';
+    btn2.style.cssText = `width:100%;padding:16px;border-radius:14px;border:2px solid ${isBarActive ? '#9090FF' : 'var(--gold)'};background:${isBarActive ? '#0D0D1F' : '#000'};color:${isBarActive ? '#9090FF' : 'var(--gold)'};font-size:16px;font-weight:800;cursor:pointer;margin-bottom:10px;opacity:${barDrinks ? 1 : 0.4};`;
+    btn2.textContent = (isBarActive ? '✅ ' : '🍺  ') + 'Catálogo del Bar';
     btn2.disabled = !barDrinks;
     btn2.onclick = () => {
       if (barDrinks) {
