@@ -1074,8 +1074,17 @@ async function handleConfirmar() {
 
     // Notificar al admin en tiempo real
     try {
-      if (state.channel) {
-        await state.channel.send({ type: 'broadcast', event: 'pedido_confirmado', payload: { miembroId: state.miembro.id } });
+      const payload = { type: 'broadcast', event: 'pedido_confirmado', payload: { miembroId: state.miembro.id } };
+      if (state.channel && state.channel.state === 'joined') {
+        await state.channel.send(payload);
+      } else {
+        const tmpCh = sb.channel(`web_mesa_${state.mesa.id}`, { config: { broadcast: { self: false, ack: false } } });
+        await new Promise((res, rej) => {
+          const t = setTimeout(() => rej(new Error('timeout')), 4000);
+          tmpCh.subscribe((s) => { if (s === 'SUBSCRIBED') { clearTimeout(t); res(); } });
+        });
+        await tmpCh.send(payload);
+        setTimeout(() => tmpCh.unsubscribe(), 500);
       }
     } catch (_) {}
 
@@ -1294,7 +1303,7 @@ function subscribeRealtime() {
   subscribePresence();
   if (state.channel) return;
 
-  state.channel = sb.channel(`web_mesa_${state.mesa.id}`)
+  state.channel = sb.channel(`web_mesa_${state.mesa.id}`, { config: { broadcast: { self: false, ack: false } } })
     .on('broadcast', { event: 'kick' }, (payload) => {
       if (payload.payload?.miembroId === state.miembro?.id) _mostrarDespedida();
     })
