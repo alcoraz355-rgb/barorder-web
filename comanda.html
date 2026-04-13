@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Comanda</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #fff; color: #000; font-family: system-ui, sans-serif; padding: 28px 24px; }
+    .item { display: flex; align-items: baseline; gap: 20px; padding: 16px 0; border-bottom: 1px solid #ddd; }
+    .item:last-child { border-bottom: none; }
+    .qty  { font-size: 44px; font-weight: 900; min-width: 52px; text-align: right; line-height: 1; }
+    .name { font-size: 32px; font-weight: 500; }
+    .msg  { font-size: 20px; color: #888; margin-top: 48px; text-align: center; }
+  </style>
+</head>
+<body>
+  <div id="lista"><p class="msg">Cargando…</p></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+  <script src="/config.js"></script>
+  <script>
+    'use strict';
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const mesaId = location.pathname.split('/').filter(Boolean).pop();
+
+    async function cargar() {
+      if (!mesaId) { render([]); return; }
+      const { data } = await sb
+        .from('pedidos')
+        .select('drink_name, drink_emoji, cantidad, marca')
+        .eq('mesa_id', mesaId)
+        .eq('estado', 'confirmado');
+      render(data || []);
+    }
+
+    function render(pedidos) {
+      const el = document.getElementById('lista');
+      if (!pedidos.length) {
+        el.innerHTML = '<p class="msg">Comanda no encontrada</p>';
+        return;
+      }
+      const map = {};
+      pedidos.forEach(p => {
+        const key = p.drink_name + (p.marca ? ' ' + p.marca : '');
+        if (!map[key]) map[key] = { emoji: p.drink_emoji || '', nombre: key, qty: 0 };
+        map[key].qty += p.cantidad;
+      });
+      el.innerHTML = Object.values(map)
+        .sort((a, b) => b.qty - a.qty)
+        .map(i => `<div class="item"><span class="qty">${i.qty}</span><span class="name">${i.emoji} ${i.nombre}</span></div>`)
+        .join('');
+    }
+
+    cargar();
+    setInterval(cargar, 10000);
+  </script>
+</body>
+</html>

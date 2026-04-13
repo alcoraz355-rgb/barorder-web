@@ -16,6 +16,7 @@
   "rewrites": [
     { "source": "/privacidad", "destination": "/privacidad.html" },
     { "source": "/terminos",   "destination": "/terminos.html" },
+    { "source": "/c/:id",      "destination": "/comanda.html" },
     { "source": "/(.*)",       "destination": "/index.html" }
   ]
 }
