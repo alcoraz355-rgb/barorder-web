@@ -1074,13 +1074,9 @@ async function handleConfirmar() {
 
     // Notificar al admin en tiempo real
     try {
-      const ch = sb.channel(`web_mesa_${state.mesa.id}`);
-      await new Promise((res, rej) => {
-        const t = setTimeout(() => rej(new Error('timeout')), 5000);
-        ch.subscribe((s) => { if (s === 'SUBSCRIBED') { clearTimeout(t); res(); } });
-      });
-      await ch.send({ type: 'broadcast', event: 'pedido_confirmado', payload: { miembroId: state.miembro.id } });
-      setTimeout(() => ch.unsubscribe(), 500);
+      if (state.channel) {
+        await state.channel.send({ type: 'broadcast', event: 'pedido_confirmado', payload: { miembroId: state.miembro.id } });
+      }
     } catch (_) {}
 
     // Guardar en historial local en el momento de confirmar
