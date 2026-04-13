@@ -481,7 +481,11 @@ async function handleJoin() {
   } catch (e) {
     $('btn-join').disabled = false;
     $('btn-join').textContent = 'Entrar a la mesa →';
-    alert('Error: ' + e.message);
+    const msg = e.message || '';
+    if (msg.includes('network') || msg.includes('fetch')) alert('Sin conexión. Comprueba tu internet e inténtalo de nuevo.');
+    else if (msg.includes('not found') || msg.includes('no rows')) alert('Código de mesa no encontrado. Comprueba el enlace.');
+    else if (msg.includes('cerrada')) alert('Esta mesa ya está cerrada.');
+    else alert('No se pudo entrar a la mesa. Inténtalo de nuevo.');
   }
 }
 
@@ -893,6 +897,7 @@ function renderCategories() {
 function renderDrinks(searchQuery) {
   const grid = $('drinks-grid');
   grid.innerHTML = '';
+  grid.scrollTop = 0;
   const allDrinks = getAllDrinks();
   const query = searchQuery !== undefined ? searchQuery : ($('search-input')?.value.trim().toLowerCase() || '');
 
@@ -1105,7 +1110,9 @@ async function handleConfirmar() {
     showScreen('confirmed');
     window.scrollTo(0, 0);
   } catch (e) {
-    alert('Error al confirmar: ' + e.message);
+    const msgConf = e.message || '';
+    if (msgConf.includes('network') || msgConf.includes('fetch')) alert('Sin conexión. Comprueba tu internet e inténtalo de nuevo.');
+    else alert('No se pudo confirmar el pedido. Inténtalo de nuevo.');
     $('btn-confirmar').disabled = false;
     $('btn-confirmar').textContent = '✓  Confirmar pedido';
   }
@@ -1332,6 +1339,18 @@ function subscribeRealtime() {
         state.customDrinks = state.mesa.custom_drinks;
       }
 
+      // Notificar si el admin acaba de bloquear la mesa
+      if (state.mesa.bloqueada && !mesaFresh?.bloqueada === false) {
+        const currentScreen = document.querySelector('.screen.active')?.id;
+        if (currentScreen === 'screen-home') {
+          const banner = document.createElement('div');
+          banner.style.cssText = 'position:fixed;top:0;left:0;right:0;background:#D4A843;color:#000;text-align:center;padding:10px;font-weight:700;z-index:9999;font-size:14px;';
+          banner.textContent = '🔒 El admin ha bloqueado el acceso al grupo';
+          document.body.appendChild(banner);
+          setTimeout(() => banner.remove(), 4000);
+        }
+      }
+
       if (state.mesa.estado === 'cerrada') {
         showClosedByAdmin();
       } else if (state.mesa.estado === 'lanzada') {
@@ -1354,6 +1373,10 @@ function subscribeRealtime() {
     })
     .subscribe();
 
+  // Avisar si el usuario intenta recargar/cerrar con items sin confirmar
+  window.removeEventListener('beforeunload', _warnUnsaved);
+  window.addEventListener('beforeunload', _warnUnsaved);
+
   // iOS suspende tabs en background → al volver, comprobar si el miembro fue eliminado
   document.removeEventListener('visibilitychange', _checkEliminado);
   window.removeEventListener('pageshow', _checkEliminado);
@@ -1361,6 +1384,15 @@ function subscribeRealtime() {
   document.addEventListener('visibilitychange', _checkEliminado);
   window.addEventListener('pageshow', _checkEliminado);
   window.addEventListener('focus', _checkEliminado);
+}
+
+function _warnUnsaved(e) {
+  const hasItems = state.quantities && Object.values(state.quantities).some((q) => q > 0);
+  const currentScreen = document.querySelector('.screen.active')?.id;
+  if (hasItems && currentScreen === 'screen-order') {
+    e.preventDefault();
+    e.returnValue = '';
+  }
 }
 
 function _mostrarDespedida() {
@@ -1374,6 +1406,7 @@ function _mostrarDespedida() {
   document.removeEventListener('visibilitychange', _checkEliminado);
   window.removeEventListener('pageshow', _checkEliminado);
   window.removeEventListener('focus', _checkEliminado);
+  window.removeEventListener('beforeunload', _warnUnsaved);
   const el = $('screen-closed');
   if (el) {
     const emoji = el.querySelector('.closed-emoji');
@@ -1573,6 +1606,9 @@ async function handleChatSend() {
     await sb.from('mensajes').insert({ mesa_id: state.mesa.id, miembro_id: state.miembro.id, nombre: state.nombre, texto });
   } catch (e) {
     console.error(e);
+    // Mostrar error al usuario si falla el envío del mensaje
+    const inputEl = document.getElementById('chat-input');
+    if (inputEl) { inputEl.style.borderColor = '#FF4444'; setTimeout(() => { inputEl.style.borderColor = ''; }, 2000); }
   }
 }
 
