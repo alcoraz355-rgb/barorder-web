@@ -247,8 +247,14 @@ function showClosedByAdmin() {
 }
 
 function getAllDrinks() {
-  // Si el admin ha subido su catálogo, usarlo; si no, fallback al catálogo base
-  return (state.customDrinks && state.customDrinks.length > 0) ? state.customDrinks : DRINKS;
+  if (!state.customDrinks || state.customDrinks.length === 0) return DRINKS;
+  // Merge: el catálogo custom solo guarda id/name/emoji/category/price.
+  // Recuperamos brands/regions/mixers/agings/steps del catálogo base para
+  // que el selector de marca/región siga funcionando.
+  return state.customDrinks.map((cd) => {
+    const base = DRINKS.find((d) => d.id === cd.id);
+    return base ? { ...base, ...cd } : cd;
+  });
 }
 
 // ─── Modal de selección de marca/región ───────────────────────────────────────
@@ -1065,6 +1071,17 @@ async function handleConfirmar() {
 
     const { error } = await sb.from('pedidos').insert(rows);
     if (error) throw error;
+
+    // Notificar al admin en tiempo real
+    try {
+      const ch = sb.channel(`web_mesa_${state.mesa.id}`);
+      await new Promise((res, rej) => {
+        const t = setTimeout(() => rej(new Error('timeout')), 5000);
+        ch.subscribe((s) => { if (s === 'SUBSCRIBED') { clearTimeout(t); res(); } });
+      });
+      await ch.send({ type: 'broadcast', event: 'pedido_confirmado', payload: { miembroId: state.miembro.id } });
+      setTimeout(() => ch.unsubscribe(), 500);
+    } catch (_) {}
 
     // Guardar en historial local en el momento de confirmar
     const pedidosParaHistorial = rows.map((r) => ({
