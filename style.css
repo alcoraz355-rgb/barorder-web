@@ -843,6 +843,27 @@ button {
   flex-shrink: 0;
 }
 
+.chat-quick-emojis {
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  padding: 8px 12px;
+  border-top: 1px solid #333;
+  flex-shrink: 0;
+}
+.chat-quick-emoji {
+  background: #111;
+  border: 1px solid #333;
+  border-radius: 20px;
+  width: 38px;
+  height: 38px;
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 .chat-input-row {
   display: flex;
   align-items: center;

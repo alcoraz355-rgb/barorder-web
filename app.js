@@ -1548,6 +1548,11 @@ function openChat() {
   const input = $('chat-input');
   input.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleChatSend(); } };
   input.focus();
+
+  document.querySelectorAll('.chat-quick-emoji').forEach((btn) => {
+    btn.ontouchend = (e) => { e.preventDefault(); handleChatSend(btn.dataset.emoji); };
+    btn.onclick = () => handleChatSend(btn.dataset.emoji);
+  });
 }
 
 function closeChat() {
@@ -1587,11 +1592,11 @@ function escapeHtml(str) {
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-async function handleChatSend() {
+async function handleChatSend(customText) {
   const input = $('chat-input');
-  const texto = input.value.trim();
+  const texto = customText ?? input.value.trim();
   if (!texto) return;
-  input.value = '';
+  if (!customText) input.value = '';
 
   const now = new Date().toISOString();
   const tempMsg = { id: `tmp_${Date.now()}`, mesa_id: state.mesa.id, miembro_id: state.miembro.id, nombre: state.nombre, texto, created_at: now };
