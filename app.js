@@ -503,11 +503,9 @@ function renderHomeScreen() {
           const pagador = activos[(ronda - 1) % activos.length];
           const sigPagador = activos[ronda % activos.length];
           const sigRonda = ronda + 1;
-          $('home-pagador-ronda-num').textContent = ronda;
-          $('home-pagador-nombre').textContent = pagador.nombre;
-          $('home-sig-ronda-num').textContent = sigRonda;
-          $('home-sig-nombre').textContent = sigPagador.nombre;
-          pagadorLinesEl.style.display = 'flex';
+          const textEl = $('home-pagador-text');
+          if (textEl) textEl.textContent = `Pago RONDA nº ${ronda}: ${pagador.nombre}   ·   RONDA nº ${sigRonda}: ${sigPagador.nombre}`;
+          pagadorLinesEl.style.display = 'block';
         }
       });
   }
