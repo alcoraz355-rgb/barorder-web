@@ -490,7 +490,7 @@ function renderHomeScreen() {
   const rondaLabelEl = $('home-ronda-label');
   const rondaNumEl = $('home-ronda-num');
   if (rondaBoxEl) rondaBoxEl.classList.toggle('abierta', abierta);
-  if (rondaLabelEl) rondaLabelEl.textContent = abierta ? 'Estás en la RONDA' : 'RONDA FINALIZADA';
+  if (rondaLabelEl) rondaLabelEl.textContent = abierta ? 'Se está pidiendo en la RONDA' : 'RONDA FINALIZADA';
   if (rondaNumEl) rondaNumEl.textContent = ronda;
 
   // Pagador de esta ronda y la siguiente
@@ -548,6 +548,8 @@ function renderHomeScreen() {
   // Botón pedidos
   const btnPedidos = $('btn-home-pedidos');
   if (btnPedidos) {
+    const tienePedido = Object.values(state.quantities || {}).some((q) => q > 0);
+    btnPedidos.textContent = tienePedido ? '✏️  MODIFICAR PEDIDO' : '🍺  NUEVO PEDIDO';
     btnPedidos.disabled = !abierta;
     btnPedidos.onclick = () => { renderOrderScreen(); showScreen('order'); };
   }

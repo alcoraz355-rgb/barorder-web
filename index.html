@@ -36,7 +36,7 @@
         </div>
 
         <div class="home-ronda-box" id="home-ronda-box">
-          <span class="home-ronda-text" id="home-ronda-label">Estás en la RONDA</span>
+          <span class="home-ronda-text" id="home-ronda-label">Se está pidiendo en la RONDA</span>
           <span class="home-ronda-num" id="home-ronda-num">1</span>
         </div>
 
@@ -117,7 +117,6 @@
   <!-- ── PANTALLA: Pedido confirmado ───────────────────────────── -->
   <div id="screen-confirmed" class="screen">
     <div class="top-bar">
-      <button id="btn-confirmed-home" style="background:transparent;border:none;color:#D4A843;font-size:17px;font-weight:600;cursor:pointer;padding:0;line-height:1">‹  Atrás</button>
       <div style="display:flex;align-items:center;gap:8px">
         <div class="logo-title"><span>🍸</span><h1>BarOrder</h1></div>
         <div class="mesa-badge" id="conf-mesa-code">—</div>
@@ -133,9 +132,10 @@
 
     <div class="confirmed-drinks" id="confirmed-drinks-list"></div>
 
-    <div class="fab-area" style="display:flex;gap:10px">
+    <div class="fab-area" style="display:flex;gap:10px;flex-wrap:wrap">
       <button class="btn-danger" id="btn-borrar" style="flex:1">🗑  Borrar mi pedido</button>
       <button class="btn-secondary" id="btn-modificar" style="flex:1">✏️  Modificar pedido</button>
+      <button class="btn-primary" id="btn-confirmed-home" style="width:100%">🏠  Inicio</button>
     </div>
   </div>
 
@@ -218,9 +218,6 @@
     </div>
   </div>
 
-  <!-- ── FAB Chat (siempre visible tras unirse) ───────────────── -->
-  <button id="chat-fab" class="chat-fab" style="display:none">💬</button>
-
   <!-- ── MODAL: Chat ───────────────────────────────────────────── -->
   <div id="chat-modal" class="modal-overlay" style="display:none">
     <div class="chat-sheet">
@@ -261,6 +258,9 @@
   </div>
 
 </div><!-- .app -->
+
+<!-- ── FAB Chat (fuera de .app para que position:fixed funcione en iOS) -->
+<button id="chat-fab" class="chat-fab" style="display:none">💬</button>
 
 <audio id="beep-audio" src="beep.wav" preload="auto"></audio>
 
