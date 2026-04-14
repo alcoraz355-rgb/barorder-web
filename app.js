@@ -490,7 +490,7 @@ function renderHomeScreen() {
   const rondaLabelEl = $('home-ronda-label');
   const rondaNumEl = $('home-ronda-num');
   if (rondaBoxEl) rondaBoxEl.classList.toggle('abierta', abierta);
-  if (rondaLabelEl) rondaLabelEl.textContent = abierta ? 'Se está pidiendo en la RONDA' : 'RONDA FINALIZADA';
+  if (rondaLabelEl) rondaLabelEl.textContent = abierta ? 'Se está pidiendo en la RONDA' : 'Pedidos cerrados para la RONDA';
   if (rondaNumEl) rondaNumEl.textContent = ronda;
 
   // Pagador de esta ronda y la siguiente
@@ -1305,10 +1305,18 @@ function subscribeRealtime() {
       const newMesa = payload.new;
       if (!newMesa) return;
 
+      const rondaAnterior = state.mesa.ronda ?? 1;
+
       // Recargar mesa completa desde BD para asegurar todos los campos (ronda, etc.)
       const { data: mesaFresh } = await sb.from('mesas').select('*').eq('id', state.mesa.id).single();
       if (mesaFresh) state.mesa = { ...state.mesa, ...mesaFresh };
       else state.mesa = { ...state.mesa, ...newMesa };
+
+      // Si cambió la ronda, resetear pedido local (es una nueva ronda)
+      if ((state.mesa.ronda ?? 1) !== rondaAnterior) {
+        state.quantities = {};
+        state.brandSelections = {};
+      }
 
       // Actualizar catálogo si cambió
       if (state.mesa.custom_drinks) {
