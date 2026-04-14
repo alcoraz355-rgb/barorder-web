@@ -1167,6 +1167,7 @@ function renderConfirmed() {
   const btnConfirmedHome = $('btn-confirmed-home');
   if (btnConfirmedHome) btnConfirmedHome.onclick = () => { renderHomeScreen(); showScreen('home'); };
   $('btn-borrar').onclick = handleBorrar;
+  $('btn-modificar').onclick = handleModificar;
 }
 
 async function handleModificar() {
