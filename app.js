@@ -6,33 +6,6 @@
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// ─── Audio (compatible iOS Safari) ───────────────────────────────────────────
-let _beepAudio = null;
-
-function getBeepAudio() {
-  if (!_beepAudio) _beepAudio = document.getElementById('beep-audio');
-  return _beepAudio;
-}
-
-// Desbloquear audio en el primer gesto del usuario (iOS Safari lo requiere)
-function unlockAudio() {
-  const a = getBeepAudio();
-  if (!a) return;
-  a.play().catch(() => {});
-  a.pause();
-  a.currentTime = 0;
-}
-document.addEventListener('touchstart', unlockAudio, { once: true, passive: true });
-document.addEventListener('click', unlockAudio, { once: true });
-
-function playBeep() {
-  try {
-    const a = getBeepAudio();
-    if (!a) return;
-    a.currentTime = 0;
-    a.play().catch(() => {});
-  } catch (_) {}
-}
 
 const CATEGORIES = ['Todos', 'Cerveza', 'Vino', 'Cóctel', 'Spirits', 'Licores', 'Sin alcohol', 'Aperitivos'];
 
@@ -1495,7 +1468,6 @@ async function initChat() {
         setUnread(false);
         localStorage.setItem(CHAT_KEY(state.mesa.id), new Date().toISOString());
       }
-      playBeep();
     })
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'mensajes', filter: `mesa_id=eq.${state.mesa.id}` }, (payload) => {
       const nuevo = payload.new;
@@ -1508,7 +1480,6 @@ async function initChat() {
         setUnread(false);
         localStorage.setItem(CHAT_KEY(state.mesa.id), new Date().toISOString());
       }
-      playBeep();
     })
     .subscribe();
 }
