@@ -1277,6 +1277,14 @@ async function renderReparto() {
 
   const conducirEl = $('reparto-conducir');
   if (conducirEl) conducirEl.style.display = '';
+
+  // Volver al home automáticamente tras 2 segundos
+  setTimeout(() => {
+    if (document.querySelector('.screen.active')?.id === 'screen-reparto') {
+      renderHomeScreen();
+      showScreen('home');
+    }
+  }, 2000);
 }
 
 // ─── Realtime ─────────────────────────────────────────────────────────────────
