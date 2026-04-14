@@ -504,7 +504,7 @@ function renderHomeScreen() {
           const sigPagador = activos[ronda % activos.length];
           const sigRonda = ronda + 1;
           const textEl = $('home-pagador-text');
-          if (textEl) textEl.textContent = `Pago RONDA nº ${ronda}: ${pagador.nombre}   ·   RONDA nº ${sigRonda}: ${sigPagador.nombre}`;
+          if (textEl) textEl.textContent = `Pago RONDAS ${ronda}/${sigRonda}: ${pagador.nombre}, ${sigPagador.nombre}`;
           pagadorLinesEl.style.display = 'block';
         }
       });
