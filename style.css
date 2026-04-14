@@ -155,7 +155,7 @@ body.amigo-mode .historial-member { background: #4a3020; }
 .home-pagador-label { color: #999; font-size: 14px; font-weight: 700; }
 .home-pagador-ronda-num { color: #999; font-size: 18px; font-weight: 900; margin: 0 1px; }
 .home-pagador-nombre { color: #999; font-size: 18px; font-weight: 900; margin-left: 1px; }
-.home-divider { height: 1px; background: var(--border); width: 100%; margin: 12px 0 12px; }
+.home-divider { height: 1px; background: var(--border); width: 100%; margin: 6px 0 6px; }
 .home-btn {
   width: 100%;
   border-radius: 14px;
@@ -710,7 +710,7 @@ button {
 /* ── Chat FAB flotante ───────────────────────────────────────── */
 .chat-fab {
   position: fixed;
-  bottom: 24px; right: 16px;
+  bottom: 6px; right: 16px;
   width: 54px; height: 54px;
   border-radius: 50%;
   background: var(--surface);
