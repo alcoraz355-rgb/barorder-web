@@ -1682,68 +1682,94 @@ function _findInList(text, list) {
   return best;
 }
 
+function _matchDrink(word, drinks) {
+  // Buscar por alias
+  for (const [drinkId, aliasList] of Object.entries(VOICE_ALIASES)) {
+    for (const alias of aliasList) {
+      const an = normVoice(alias);
+      if (word === an) return drinkId;
+      if (word.length >= 4 && an.startsWith(word)) return drinkId;
+      if (an.length >= 4 && word.startsWith(an)) return drinkId;
+    }
+  }
+  // Buscar por nombre
+  for (const d of drinks) {
+    const dn = normVoice(d.name);
+    if (word === dn) return d.id;
+    if (word.length >= 4 && dn.startsWith(word)) return d.id;
+    if (dn.length >= 4 && word.startsWith(dn)) return d.id;
+  }
+  return null;
+}
+
 function parseVoiceWeb(transcript) {
   const text = normVoice(transcript);
-  const results = [];
-  const segments = text.split(/\s+(?:y|e|mas|más|también|tambien)\s+/);
+  const words = text.split(/\s+/);
   const drinks = getAllDrinks();
+  const results = [];
 
-  for (const seg of segments) {
-    const tokens = seg.trim().split(/\s+/);
-    let qty = 1, search = seg.trim();
-    if (VOICE_NUM_WORDS[tokens[0]]) { qty = VOICE_NUM_WORDS[tokens[0]]; search = tokens.slice(1).join(' '); }
-    if (/^\d+/.test(tokens[0])) { const n = parseInt(tokens[0], 10); if (n > 0 && n <= 10) { qty = n; search = tokens.slice(1).join(' '); } }
-    if (!search) continue;
+  let i = 0;
+  while (i < words.length) {
+    // Extraer cantidad si hay número
+    let qty = 1;
+    if (VOICE_NUM_WORDS[words[i]]) { qty = VOICE_NUM_WORDS[words[i]]; i++; if (i >= words.length) break; }
+    else if (/^\d+$/.test(words[i])) { const n = parseInt(words[i], 10); if (n > 0 && n <= 10) { qty = n; i++; if (i >= words.length) break; } }
 
-    // Buscar bebida por alias o nombre (exacto y parcial)
-    let matchedId = null, bestLen = 0;
-    const searchWords = search.split(/\s+/);
-    for (const [drinkId, aliasList] of Object.entries(VOICE_ALIASES)) {
-      for (const alias of aliasList) {
-        const an = normVoice(alias);
-        if (search.includes(an) && an.length > bestLen) { matchedId = drinkId; bestLen = an.length; }
-        for (const w of searchWords) {
-          if (w.length >= 4 && an.startsWith(w) && an.length > bestLen) { matchedId = drinkId; bestLen = an.length; }
-        }
-      }
+    // Intentar match con 3 palabras, luego 2, luego 1
+    let matchedId = null;
+    let matchLen = 0;
+    for (let len = Math.min(3, words.length - i); len >= 1; len--) {
+      const phrase = words.slice(i, i + len).join(' ');
+      const id = _matchDrink(phrase, drinks);
+      if (id) { matchedId = id; matchLen = len; break; }
     }
+
     if (!matchedId) {
-      for (const d of drinks) {
-        const dn = normVoice(d.name);
-        if (search.includes(dn) && dn.length > bestLen) { matchedId = d.id; bestLen = dn.length; }
-        for (const w of searchWords) {
-          if (w.length >= 4 && dn.startsWith(w) && dn.length > bestLen) { matchedId = d.id; bestLen = dn.length; }
-        }
-      }
+      // Saltar conector o palabra no reconocida
+      i++;
+      continue;
     }
-    if (!matchedId) continue;
 
+    i += matchLen;
+
+    // Buscar marca/mixer/región en las palabras siguientes
     const drink = drinks.find((d) => d.id === matchedId);
     let selection = null;
 
     if (drink) {
+      // Recoger las palabras restantes hasta el próximo match de bebida o conector
+      let extraWords = [];
+      let j = i;
+      while (j < words.length) {
+        if (['y', 'e', 'mas', 'tambien', 'ademas'].includes(words[j])) { j++; break; }
+        // Comprobar si es otra bebida (no consumir)
+        const nextPhrase = words.slice(j, j + Math.min(2, words.length - j)).join(' ');
+        if (_matchDrink(words[j], drinks) || _matchDrink(nextPhrase, drinks)) break;
+        if (VOICE_NUM_WORDS[words[j]] || /^\d+$/.test(words[j])) break;
+        extraWords.push(words[j]);
+        j++;
+      }
+      i = j;
+
+      const extra = extraWords.join(' ');
       const sep = drink.sep || ' ';
-      // Bebidas con brands + mixers (cerveza, spirits)
+
       if (drink.brands && drink.mixers) {
-        const brand = _findInList(search, drink.brands);
-        const mixer = _findInList(search, drink.mixers);
+        const brand = _findInList(extra, drink.brands);
+        const mixer = _findInList(extra, drink.mixers);
         if (brand && mixer) selection = brand + sep + mixer;
         else if (brand) selection = brand;
         else if (mixer) selection = mixer;
-      }
-      // Vinos con regions + agings
-      else if (drink.regions && drink.agings) {
-        const region = _findInList(search, drink.regions);
-        const aging = _findInList(search, drink.agings);
+      } else if (drink.regions && drink.agings) {
+        const region = _findInList(extra, drink.regions);
+        const aging = _findInList(extra, drink.agings);
         if (region && aging) selection = region + ' ' + aging;
         else if (region) selection = region;
         else if (aging) selection = aging;
-      }
-      // Bebidas con steps genéricos (café, etc.)
-      else if (drink.steps) {
+      } else if (drink.steps) {
         const parts = [];
         for (const step of drink.steps) {
-          const match = _findInList(search, step.options);
+          const match = _findInList(extra, step.options);
           if (match) parts.push(match);
         }
         if (parts.length) selection = parts.join(' ');
