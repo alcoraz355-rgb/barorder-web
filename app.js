@@ -197,11 +197,13 @@ const $ = (id) => document.getElementById(id);
 function showScreen(name) {
   document.querySelectorAll('.screen').forEach((s) => s.classList.remove('active'));
   $(`screen-${name}`).classList.add('active');
-  // Mostrar/ocultar botón de voz solo en pantalla de pedidos
-  const voiceFab = $('voice-fab');
+  // Voz: solo visible en pantalla de pedidos
   const voiceBubble = $('voice-bubble');
-  if (voiceFab) voiceFab.style.display = (name === 'order' && VoiceRecognition) ? 'flex' : 'none';
   if (voiceBubble) voiceBubble.style.display = 'none';
+  if (name !== 'order' && voiceActive) stopVoiceWeb();
+  // Chat global: ocultar en order (tiene su propio botón integrado)
+  const chatFab = $('chat-fab');
+  if (chatFab) chatFab.style.display = (name === 'order') ? 'none' : '';
 }
 
 function showClosedByAdmin() {
@@ -1818,6 +1820,10 @@ function initVoiceFab() {
     if (voiceActive) { stopVoiceWeb(); return; }
     startVoiceWeb();
   };
+
+  // Chat integrado en la barra de pedidos
+  const orderChatFab = $('order-chat-fab');
+  if (orderChatFab) orderChatFab.onclick = () => openChat();
 }
 
 document.addEventListener('DOMContentLoaded', () => {

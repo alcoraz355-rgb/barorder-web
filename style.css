@@ -707,19 +707,21 @@ button {
 .closed-title { color: var(--text); font-size: 22px; font-weight: 800; }
 .closed-sub { color: var(--text-muted); font-size: 15px; }
 
-/* ── Voice FAB flotante ──────────────────────────────────────── */
+/* ── Voice & Chat en pantalla pedido ─────────────────────────── */
+.fab-tools-row {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  padding: 4px 0 2px;
+}
 .voice-fab {
-  position: fixed;
-  bottom: 50%; right: 6px;
-  width: 54px; height: 54px;
+  width: 48px; height: 48px;
   border-radius: 50%;
   background: #000;
   border: 1px solid #444;
   color: #3399FF;
-  font-size: 24px;
+  font-size: 22px;
   display: none; align-items: center; justify-content: center;
-  z-index: 200;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
   -webkit-tap-highlight-color: transparent;
   cursor: pointer;
 }
@@ -732,18 +734,30 @@ button {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.2); }
 }
+.order-chat-fab {
+  width: 48px; height: 48px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  font-size: 22px;
+  display: flex; align-items: center; justify-content: center;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+}
 .voice-bubble {
   position: fixed;
-  bottom: calc(50% + 58px); right: 2px;
+  bottom: 160px; left: 50%;
+  transform: translateX(-50%);
   background: #1A1A1A;
   border: 1px solid #444;
   border-radius: 12px;
   padding: 7px 12px;
-  max-width: 220px;
+  max-width: 260px;
   color: #CCC;
   font-size: 13px;
   font-style: italic;
   z-index: 201;
+  text-align: center;
 }
 
 /* ── Chat FAB flotante ───────────────────────────────────────── */
