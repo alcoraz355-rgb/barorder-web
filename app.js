@@ -1651,61 +1651,150 @@ function normVoice(str) {
   return (str || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
-const VOICE_NUM_WORDS = { un: 1, una: 1, uno: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5 };
+// Quitar artículos y plurales para matching flexible
+function cleanVoice(str) {
+  let s = str.replace(/\b(un|una|uno|el|la|los|las|del|de|al|para|por|me|dame|ponme|quiero|pon)\b/g, ' ').replace(/\s+/g, ' ').trim();
+  // Plurales: cervezas→cerveza, mojitos→mojito, pepinillos→pepinillo
+  s = s.replace(/\b(\w{4,})s\b/g, '$1').replace(/\b(\w{4,})es\b/g, '$1');
+  return s;
+}
+
+const VOICE_NUM_WORDS = { un: 1, una: 1, uno: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8 };
 const VOICE_ALIASES = {
-  c1: ['cerveza','birra','caña'], c2: ['cerveza sin','sin alcohol'], c3: ['clara'], c4: ['jarra'], c6: ['ipa'],
-  k1: ['mojito'], k2: ['gin tonic','gintonic','gin'], k3: ['daiquiri'], k4: ['margarita'], k5: ['pina colada','piña colada'],
-  k6: ['aperol','aperol spritz','spritz'], k7: ['negroni'], k8: ['cuba libre','cubata','cubalibre'],
-  k9: ['tinto de verano','tinto verano'], s1: ['whisky','whiskey','guisqui','wiski'],
-  s2: ['ron','rum'], s3: ['ginebra'], s4: ['vodka'], s5: ['tequila'], s6: ['brandy','coñac','cognac'],
-  v1: ['vino tinto','tinto','vino'], v2: ['vino blanco','blanco'], v3: ['rosado','vino rosado'],
-  v4: ['sangria','sangría'], v5: ['cava'], v6: ['vermut','vermuth'],
-  n1: ['agua','agua mineral'], n2: ['coca cola','cocacola','cola'], n3: ['fanta naranja','fanta','naranja'],
-  n4: ['fanta limon','limon'], n5: ['sprite','seven up'], n6: ['tonica'], n7: ['redbull','red bull','energetica'],
-  n8: ['zumo naranja','zumo de naranja','zumo'], n9: ['cafe','café'], n10: ['te','té','infusion'],
+  c1: ['cerveza','birra','cana','canita','birrita','birritas','terci','botellin'],
+  c2: ['cerveza sin','sin alcohol','cerveza cero','sin'],
+  c3: ['clara','clarita'],
+  c4: ['jarra','jarrita'],
+  c5: ['cero cero limon','00 limon'],
+  c6: ['ipa','india pale'],
+  c7: ['tostada'],
+  c8: ['trigo'],
+  c9: ['radler'],
+  k1: ['mojito','mojit'],
+  k2: ['gin tonic','gintonic','gin','yintonic','jin tonic'],
+  k3: ['daiquiri','daiquir','daikiri'],
+  k4: ['margarita','margari'],
+  k5: ['pina colada','piña colada','pina cola'],
+  k6: ['aperol','aperol spritz','spritz','esprit'],
+  k7: ['negroni','negron'],
+  k8: ['cuba libre','cubata','cubalibre','cuba'],
+  k9: ['tinto de verano','tinto verano'],
+  k10: ['rebujito','rebujit'],
+  k11: ['bloody mary','bludi','bladi'],
+  k13: ['caipirinha','caipiriña','caipirin'],
+  k16: ['old fashioned'],
+  k17: ['whisky sour','wiski sour'],
+  s1: ['whisky','whiskey','guisqui','wiski','güisqui','wisqui'],
+  s2: ['ron','rum','ronci'],
+  s3: ['ginebra','vodka gin'],
+  s4: ['vodka','bodka'],
+  s5: ['tequila','tekila'],
+  s6: ['brandy','coñac','cognac','brandi'],
+  s7: ['chupito','chupit','shot'],
+  v1: ['vino tinto','tinto','vino'],
+  v2: ['vino blanco','blanco'],
+  v3: ['rosado','vino rosado'],
+  v4: ['sangria','sangría'],
+  v5: ['cava','champan','champaña'],
+  v6: ['vermut','vermuth','vermu'],
+  v7: ['fino'],
+  v8: ['manzanilla'],
+  v9: ['lambrusco'],
+  v10: ['prosecco','proseco'],
+  l1: ['baileys','bailey','beilis'],
+  l2: ['jagermeister','jagger','yager'],
+  l3: ['licor cafe','licor de cafe'],
+  l4: ['pacharan','patxaran'],
+  l5: ['orujo'],
+  l6: ['amaretto','amareto'],
+  n1: ['agua','agua mineral','agüita'],
+  n13: ['agua con gas','agua gas'],
+  n2: ['coca cola','cocacola','cola','coca'],
+  n3: ['cola light','coca light'],
+  n14: ['cola zero','coca zero','zero'],
+  n4: ['fanta naranja','fanta','naranjada'],
+  n5: ['fanta limon','limonada fanta'],
+  n12: ['tonica','tónica','agua tonica'],
+  n7: ['limonada','limonad'],
+  n8: ['redbull','red bull','energetica','monster'],
+  n9: ['zumo naranja','zumo de naranja','zumo'],
+  n10: ['cafe','café','cafecito','cortado','solo cafe'],
+  n11: ['te','té','infusion','infusión','manzanilla te'],
+  // Aperitivos
+  a1: ['patatas','patata','fritas','papas'],
+  a2: ['olivas','aceitunas','oliva','aceituna'],
+  a3: ['pepinillos','pepinillo','pepini'],
+  a4: ['revuelto'],
+  a5: ['gambas','gamba','gambita'],
+  a6: ['calamares','calamar','calama'],
+  a7: ['tostadas','tostada pan','tosta'],
+  a8: ['tapas','tapa'],
 };
+
+function _fuzzyMatch(word, target) {
+  if (target.includes(word) || word.includes(target)) return true;
+  if (word.length >= 3 && target.startsWith(word)) return true;
+  if (target.length >= 3 && word.startsWith(target)) return true;
+  // Similitud: si difieren en 1-2 letras (typos del reconocedor)
+  if (word.length >= 4 && target.length >= 4 && Math.abs(word.length - target.length) <= 2) {
+    let matches = 0;
+    const shorter = word.length <= target.length ? word : target;
+    const longer = word.length > target.length ? word : target;
+    for (let i = 0; i < shorter.length; i++) { if (longer.includes(shorter[i])) matches++; }
+    if (matches / shorter.length >= 0.75) return true;
+  }
+  return false;
+}
 
 function _findInList(text, list) {
   let best = null, bestLen = 0;
   const words = text.split(/\s+/);
+  const cleaned = cleanVoice(text);
+  const cleanWords = cleaned.split(/\s+/);
   for (const item of list) {
     const n = normVoice(item);
-    // Exacta: "cruzcampo" dentro de "cerveza cruzcampo caña"
+    // Exacta
     if (text.includes(n) && n.length > bestLen) { best = item; bestLen = n.length; }
-    // Parcial: "pepini" matchea "pepinillos" (mínimo 4 letras)
-    if (!best || n.length > bestLen) {
-      for (const w of words) {
-        if (w.length >= 4 && n.startsWith(w) && n.length > bestLen) { best = item; bestLen = n.length; }
-        if (w.length >= 4 && w.startsWith(n) && n.length >= 4 && n.length > bestLen) { best = item; bestLen = n.length; }
-      }
+    if (cleaned.includes(n) && n.length > bestLen) { best = item; bestLen = n.length; }
+    // Parcial por palabra
+    for (const w of cleanWords) {
+      if (w.length >= 3 && _fuzzyMatch(w, n) && n.length > bestLen) { best = item; bestLen = n.length; }
     }
   }
   return best;
 }
 
 function _matchDrink(word, drinks) {
-  // Buscar por alias
+  const w = cleanVoice(normVoice(word));
+  if (!w || w.length < 3) return null;
+  // Buscar por alias (priorizar matches exactos)
   for (const [drinkId, aliasList] of Object.entries(VOICE_ALIASES)) {
     for (const alias of aliasList) {
       const an = normVoice(alias);
-      if (word === an) return drinkId;
-      if (word.length >= 4 && an.startsWith(word)) return drinkId;
-      if (an.length >= 4 && word.startsWith(an)) return drinkId;
+      if (w === an || w.includes(an) || an.includes(w)) return drinkId;
     }
   }
-  // Buscar por nombre
+  // Buscar por nombre exacto
   for (const d of drinks) {
     const dn = normVoice(d.name);
-    if (word === dn) return d.id;
-    if (word.length >= 4 && dn.startsWith(word)) return d.id;
-    if (dn.length >= 4 && word.startsWith(dn)) return d.id;
+    if (w === dn || w.includes(dn) || dn.includes(w)) return d.id;
+  }
+  // Fuzzy por alias
+  for (const [drinkId, aliasList] of Object.entries(VOICE_ALIASES)) {
+    for (const alias of aliasList) {
+      if (_fuzzyMatch(w, normVoice(alias))) return drinkId;
+    }
+  }
+  // Fuzzy por nombre
+  for (const d of drinks) {
+    if (_fuzzyMatch(w, normVoice(d.name))) return d.id;
   }
   return null;
 }
 
 function parseVoiceWeb(transcript) {
-  const text = normVoice(transcript);
-  const words = text.split(/\s+/);
+  const text = cleanVoice(normVoice(transcript));
+  const words = text.split(/\s+/).filter(w => w.length > 0);
   const drinks = getAllDrinks();
   const results = [];
 
@@ -1806,12 +1895,20 @@ function _voiceStartSession() {
   voiceListening = true;
 
   voiceRecog.onresult = (e) => {
-    let all = '';
+    const parts = [];
+    let interim = '';
     for (let i = 0; i < e.results.length; i++) {
-      all += e.results[i][0].transcript + ' ';
+      if (e.results[i].isFinal) {
+        parts.push(e.results[i][0].transcript.trim());
+      } else {
+        interim = e.results[i][0].transcript.trim();
+      }
     }
-    _voiceFullText = (baseText + ' ' + all).trim();
-    if (bubble) bubble.textContent = '🎤 "' + _voiceFullText + '"';
+    // Cada silencio = separador " y " para ayudar al parser a dividir bebidas
+    const sessionFinal = parts.join(' y ');
+    _voiceFullText = baseText ? (baseText + ' y ' + sessionFinal) : sessionFinal;
+    const display = interim ? (_voiceFullText + ' ' + interim) : _voiceFullText;
+    if (bubble && display) bubble.textContent = '🎤 "' + display.trim() + '"';
   };
 
   voiceRecog.onend = () => {
