@@ -1666,9 +1666,18 @@ const VOICE_ALIASES = {
 
 function _findInList(text, list) {
   let best = null, bestLen = 0;
+  const words = text.split(/\s+/);
   for (const item of list) {
     const n = normVoice(item);
+    // Exacta: "cruzcampo" dentro de "cerveza cruzcampo caña"
     if (text.includes(n) && n.length > bestLen) { best = item; bestLen = n.length; }
+    // Parcial: "pepini" matchea "pepinillos" (mínimo 4 letras)
+    if (!best || n.length > bestLen) {
+      for (const w of words) {
+        if (w.length >= 4 && n.startsWith(w) && n.length > bestLen) { best = item; bestLen = n.length; }
+        if (w.length >= 4 && w.startsWith(n) && n.length >= 4 && n.length > bestLen) { best = item; bestLen = n.length; }
+      }
+    }
   }
   return best;
 }
@@ -1686,18 +1695,25 @@ function parseVoiceWeb(transcript) {
     if (/^\d+/.test(tokens[0])) { const n = parseInt(tokens[0], 10); if (n > 0 && n <= 10) { qty = n; search = tokens.slice(1).join(' '); } }
     if (!search) continue;
 
-    // Buscar bebida por alias o nombre
+    // Buscar bebida por alias o nombre (exacto y parcial)
     let matchedId = null, bestLen = 0;
+    const searchWords = search.split(/\s+/);
     for (const [drinkId, aliasList] of Object.entries(VOICE_ALIASES)) {
       for (const alias of aliasList) {
         const an = normVoice(alias);
         if (search.includes(an) && an.length > bestLen) { matchedId = drinkId; bestLen = an.length; }
+        for (const w of searchWords) {
+          if (w.length >= 4 && an.startsWith(w) && an.length > bestLen) { matchedId = drinkId; bestLen = an.length; }
+        }
       }
     }
     if (!matchedId) {
       for (const d of drinks) {
         const dn = normVoice(d.name);
         if (search.includes(dn) && dn.length > bestLen) { matchedId = d.id; bestLen = dn.length; }
+        for (const w of searchWords) {
+          if (w.length >= 4 && dn.startsWith(w) && dn.length > bestLen) { matchedId = d.id; bestLen = dn.length; }
+        }
       }
     }
     if (!matchedId) continue;
@@ -1763,18 +1779,12 @@ function _voiceStartSession() {
   voiceListening = true;
 
   voiceRecog.onresult = (e) => {
-    let final = '', interim = '';
+    let all = '';
     for (let i = 0; i < e.results.length; i++) {
-      if (e.results[i].isFinal) {
-        final += e.results[i][0].transcript + ' ';
-      } else {
-        interim += e.results[i][0].transcript;
-      }
+      all += e.results[i][0].transcript + ' ';
     }
-    // Acumular finales directamente
-    _voiceFullText = (baseText + ' ' + final).trim();
-    const display = (_voiceFullText + ' ' + interim).trim();
-    if (bubble && display) bubble.textContent = '🎤 "' + display + '"';
+    _voiceFullText = (baseText + ' ' + all).trim();
+    if (bubble) bubble.textContent = '🎤 "' + _voiceFullText + '"';
   };
 
   voiceRecog.onend = () => {
