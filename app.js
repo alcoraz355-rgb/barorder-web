@@ -1686,6 +1686,103 @@ function parseVoiceWeb(transcript) {
   return Object.entries(results).map(([drinkId, qty]) => ({ drinkId, qty }));
 }
 
+function startVoiceWeb() {
+  const fab = $('voice-fab');
+  const bubble = $('voice-bubble');
+  if (!fab || !VoiceRecognition || voiceListening) return;
+  voiceRecog = new VoiceRecognition();
+  voiceRecog.lang = 'es-ES';
+  voiceRecog.continuous = false;
+  voiceRecog.interimResults = true;
+  voiceListening = true;
+  fab.classList.add('listening');
+  fab.textContent = '⏹';
+  bubble.style.display = 'block';
+  bubble.textContent = '🎤 Escuchando...';
+
+  voiceRecog.onresult = (e) => {
+    let transcript = '';
+    for (let i = 0; i < e.results.length; i++) transcript += e.results[i][0].transcript;
+    bubble.textContent = '🎤 "' + transcript + '"';
+  };
+  voiceRecog.onend = () => {
+    const text = bubble.textContent.replace(/^🎤 "|"$/g, '').trim();
+    stopVoiceWeb();
+    if (!text || text === 'Escuchando...') return;
+
+    // Si el modal de marca está abierto, buscar entre sus opciones
+    if (_brandModalState) {
+      const norm = normVoice(text);
+      let best = null, bestLen = 0;
+      for (const opt of _brandModalState.options) {
+        const optNorm = normVoice(opt);
+        if (norm.includes(optNorm) && optNorm.length > bestLen) { best = opt; bestLen = optNorm.length; }
+      }
+      if (best) {
+        _brandModalState.selectOption(best);
+        // Si el modal sigue abierto (siguiente paso), seguir escuchando
+        if (_brandModalState) {
+          setTimeout(() => startVoiceWeb(), 300);
+        }
+      } else {
+        alert('🎤 "' + text + '"\n\nNo coincide con ninguna opción. Prueba de nuevo.');
+        if (_brandModalState) {
+          setTimeout(() => startVoiceWeb(), 300);
+        }
+      }
+      return;
+    }
+
+    // Buscar bebidas
+    const matches = parseVoiceWeb(text);
+    if (!matches.length) {
+      alert('🎤 "' + text + '"\n\nNo he encontrado esa bebida, inténtalo de nuevo.');
+      return;
+    }
+    const drinks = getAllDrinks();
+    let directAdded = [];
+    function processNext(idx) {
+      if (idx >= matches.length) {
+        if (directAdded.length) {
+          renderDrinks();
+          alert('🎤 Añadido:\n' + directAdded.join('\n'));
+        }
+        return;
+      }
+      const { drinkId, qty } = matches[idx];
+      const drink = drinks.find((x) => x.id === drinkId);
+      if (!drink) { processNext(idx + 1); return; }
+      const hasOptions = drink.brands || drink.regions || drink.steps;
+      if (hasOptions) {
+        let remaining = qty;
+        function openNext() {
+          if (remaining <= 0) { processNext(idx + 1); return; }
+          remaining--;
+          openBrandModal(drink, (selection) => {
+            state.quantities[drinkId] = (state.quantities[drinkId] || 0) + 1;
+            if (!state.brandSelections[drinkId]) state.brandSelections[drinkId] = [];
+            state.brandSelections[drinkId].push(selection);
+            renderDrinks();
+            openNext();
+          });
+          // Activar mic automáticamente para el modal
+          setTimeout(() => startVoiceWeb(), 500);
+        }
+        openNext();
+      } else {
+        for (let i = 0; i < qty; i++) {
+          state.quantities[drinkId] = (state.quantities[drinkId] || 0) + 1;
+        }
+        directAdded.push((drink.emoji || '') + ' ' + drink.name + (qty > 1 ? ' ×' + qty : ''));
+        processNext(idx + 1);
+      }
+    }
+    processNext(0);
+  };
+  voiceRecog.onerror = () => { stopVoiceWeb(); };
+  voiceRecog.start();
+}
+
 function initVoiceFab() {
   const fab = $('voice-fab');
   const bubble = $('voice-bubble');
@@ -1694,88 +1791,7 @@ function initVoiceFab() {
 
   fab.onclick = () => {
     if (voiceListening) { stopVoiceWeb(); return; }
-    voiceRecog = new VoiceRecognition();
-    voiceRecog.lang = 'es-ES';
-    voiceRecog.continuous = false;
-    voiceRecog.interimResults = true;
-    voiceListening = true;
-    fab.classList.add('listening');
-    fab.textContent = '⏹';
-    bubble.style.display = 'block';
-    bubble.textContent = '🎤 Escuchando...';
-
-    voiceRecog.onresult = (e) => {
-      let transcript = '';
-      for (let i = 0; i < e.results.length; i++) transcript += e.results[i][0].transcript;
-      bubble.textContent = '🎤 "' + transcript + '"';
-    };
-    voiceRecog.onend = () => {
-      const text = bubble.textContent.replace(/^🎤 "|"$/g, '').trim();
-      stopVoiceWeb();
-      if (!text || text === 'Escuchando...') return;
-
-      // Si el modal de marca está abierto, buscar entre sus opciones
-      if (_brandModalState) {
-        const norm = normVoice(text);
-        let best = null, bestLen = 0;
-        for (const opt of _brandModalState.options) {
-          const optNorm = normVoice(opt);
-          if (norm.includes(optNorm) && optNorm.length > bestLen) { best = opt; bestLen = optNorm.length; }
-        }
-        if (best) {
-          _brandModalState.selectOption(best);
-        } else {
-          alert('🎤 "' + text + '"\n\nNo coincide con ninguna opción. Prueba de nuevo.');
-        }
-        return;
-      }
-
-      // Buscar bebidas
-      const matches = parseVoiceWeb(text);
-      if (!matches.length) {
-        alert('🎤 "' + text + '"\n\nNo he encontrado esa bebida, inténtalo de nuevo.');
-        return;
-      }
-      const drinks = getAllDrinks();
-      let directAdded = [];
-      function processNext(idx) {
-        if (idx >= matches.length) {
-          if (directAdded.length) {
-            renderDrinks();
-            alert('🎤 Añadido:\n' + directAdded.join('\n'));
-          }
-          return;
-        }
-        const { drinkId, qty } = matches[idx];
-        const drink = drinks.find((x) => x.id === drinkId);
-        if (!drink) { processNext(idx + 1); return; }
-        const hasOptions = drink.brands || drink.regions || drink.steps;
-        if (hasOptions) {
-          let remaining = qty;
-          function openNext() {
-            if (remaining <= 0) { processNext(idx + 1); return; }
-            remaining--;
-            openBrandModal(drink, (selection) => {
-              state.quantities[drinkId] = (state.quantities[drinkId] || 0) + 1;
-              if (!state.brandSelections[drinkId]) state.brandSelections[drinkId] = [];
-              state.brandSelections[drinkId].push(selection);
-              renderDrinks();
-              openNext();
-            });
-          }
-          openNext();
-        } else {
-          for (let i = 0; i < qty; i++) {
-            state.quantities[drinkId] = (state.quantities[drinkId] || 0) + 1;
-          }
-          directAdded.push((drink.emoji || '') + ' ' + drink.name + (qty > 1 ? ' ×' + qty : ''));
-          processNext(idx + 1);
-        }
-      }
-      processNext(0);
-    };
-    voiceRecog.onerror = () => { stopVoiceWeb(); };
-    voiceRecog.start();
+    startVoiceWeb();
   };
 }
 

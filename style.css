@@ -713,8 +713,9 @@ button {
   bottom: 130px; right: 76px;
   width: 54px; height: 54px;
   border-radius: 50%;
-  background: #fff;
-  border: 1px solid #ccc;
+  background: #000;
+  border: 1px solid #444;
+  color: #3399FF;
   font-size: 24px;
   display: none; align-items: center; justify-content: center;
   z-index: 200;
