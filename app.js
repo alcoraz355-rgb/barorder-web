@@ -197,6 +197,11 @@ const $ = (id) => document.getElementById(id);
 function showScreen(name) {
   document.querySelectorAll('.screen').forEach((s) => s.classList.remove('active'));
   $(`screen-${name}`).classList.add('active');
+  // Mostrar/ocultar botón de voz solo en pantalla de pedidos
+  const voiceFab = $('voice-fab');
+  const voiceBubble = $('voice-bubble');
+  if (voiceFab) voiceFab.style.display = (name === 'order' && VoiceRecognition) ? 'flex' : 'none';
+  if (voiceBubble) voiceBubble.style.display = 'none';
 }
 
 function showClosedByAdmin() {
@@ -827,6 +832,7 @@ function renderOrderScreen() {
   $('btn-confirmar').textContent = '✓  Confirmar pedido';
   $('btn-confirmar').onclick = handleConfirmar;
   $('btn-eliminar-seleccion').onclick = handleEliminarSeleccion;
+  initVoiceFab();
   const btnOrderVolver = $('btn-order-volver');
   if (btnOrderVolver) btnOrderVolver.onclick = () => { renderHomeScreen(); showScreen('home'); };
 
@@ -1618,6 +1624,116 @@ function loadSession(mesaCodigo) {
     if (s.mesaCodigo !== mesaCodigo) return null;
     return s;
   } catch { return null; }
+}
+
+// ─── Voz (Web Speech API) ──────────────────────────────────────────────────────
+const VoiceRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+let voiceRecog = null;
+let voiceListening = false;
+
+function normVoice(str) {
+  return (str || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+const VOICE_NUM_WORDS = { un: 1, una: 1, uno: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5 };
+const VOICE_ALIASES = {
+  c1: ['cerveza','birra','caña'], c2: ['cerveza sin','sin alcohol'], c3: ['clara'], c4: ['jarra'], c6: ['ipa'],
+  k1: ['mojito'], k2: ['gin tonic','gintonic','gin'], k3: ['daiquiri'], k4: ['margarita'], k5: ['pina colada','piña colada'],
+  k6: ['aperol','aperol spritz','spritz'], k7: ['negroni'], k8: ['cuba libre','cubata','cubalibre'],
+  k9: ['tinto de verano','tinto verano'], s1: ['whisky','whiskey','guisqui','wiski'],
+  s2: ['ron','rum'], s3: ['ginebra'], s4: ['vodka'], s5: ['tequila'], s6: ['brandy','coñac','cognac'],
+  v1: ['vino tinto','tinto','vino'], v2: ['vino blanco','blanco'], v3: ['rosado','vino rosado'],
+  v4: ['sangria','sangría'], v5: ['cava'], v6: ['vermut','vermuth'],
+  n1: ['agua','agua mineral'], n2: ['coca cola','cocacola','cola'], n3: ['fanta naranja','fanta','naranja'],
+  n4: ['fanta limon','limon'], n5: ['sprite','seven up'], n6: ['tonica'], n7: ['redbull','red bull','energetica'],
+  n8: ['zumo naranja','zumo de naranja','zumo'], n9: ['cafe','café'], n10: ['te','té','infusion'],
+};
+
+function parseVoiceWeb(transcript) {
+  const text = normVoice(transcript);
+  const results = {};
+  const segments = text.split(/\s+(?:y|e|mas|más|también|tambien|con)\s+/);
+  const drinks = getAllDrinks();
+  for (const seg of segments) {
+    const tokens = seg.trim().split(/\s+/);
+    let qty = 1, search = seg.trim();
+    if (VOICE_NUM_WORDS[tokens[0]]) { qty = VOICE_NUM_WORDS[tokens[0]]; search = tokens.slice(1).join(' '); }
+    if (/^\d+/.test(tokens[0])) { const n = parseInt(tokens[0], 10); if (n > 0 && n <= 10) { qty = n; search = tokens.slice(1).join(' '); } }
+    if (!search) continue;
+    let matched = null, bestLen = 0;
+    for (const [drinkId, aliasList] of Object.entries(VOICE_ALIASES)) {
+      for (const alias of aliasList) {
+        if (search.includes(normVoice(alias)) && normVoice(alias).length > bestLen) { matched = drinkId; bestLen = normVoice(alias).length; }
+      }
+    }
+    if (!matched) {
+      for (const d of drinks) {
+        const dn = normVoice(d.name);
+        if (search.includes(dn) && dn.length > bestLen) { matched = d.id; bestLen = dn.length; }
+      }
+    }
+    if (matched) results[matched] = (results[matched] || 0) + qty;
+  }
+  return Object.entries(results).map(([drinkId, qty]) => ({ drinkId, qty }));
+}
+
+function initVoiceFab() {
+  const fab = $('voice-fab');
+  const bubble = $('voice-bubble');
+  if (!fab || !VoiceRecognition) { if (fab) fab.style.display = 'none'; return; }
+  fab.style.display = 'flex';
+
+  fab.onclick = () => {
+    if (voiceListening) { stopVoiceWeb(); return; }
+    voiceRecog = new VoiceRecognition();
+    voiceRecog.lang = 'es-ES';
+    voiceRecog.continuous = false;
+    voiceRecog.interimResults = true;
+    voiceListening = true;
+    fab.classList.add('listening');
+    fab.textContent = '⏹';
+    bubble.style.display = 'block';
+    bubble.textContent = '🎤 Escuchando...';
+
+    voiceRecog.onresult = (e) => {
+      let transcript = '';
+      for (let i = 0; i < e.results.length; i++) transcript += e.results[i][0].transcript;
+      bubble.textContent = '🎤 "' + transcript + '"';
+    };
+    voiceRecog.onend = () => {
+      const text = bubble.textContent.replace(/^🎤 "|"$/g, '').trim();
+      stopVoiceWeb();
+      if (!text || text === 'Escuchando...') return;
+      const matches = parseVoiceWeb(text);
+      if (!matches.length) {
+        alert('🎤 "' + text + '"\n\nNo he encontrado esa bebida, inténtalo de nuevo.');
+        return;
+      }
+      const drinks = getAllDrinks();
+      matches.forEach(({ drinkId, qty }) => {
+        for (let i = 0; i < qty; i++) {
+          state.quantities[drinkId] = (state.quantities[drinkId] || 0) + 1;
+        }
+      });
+      renderDrinks();
+      const nombres = matches.map(({ drinkId, qty }) => {
+        const d = drinks.find((x) => x.id === drinkId);
+        return (d?.emoji || '') + ' ' + (d?.name || drinkId) + (qty > 1 ? ' ×' + qty : '');
+      }).join('\n');
+      alert('🎤 Añadido:\n' + nombres);
+    };
+    voiceRecog.onerror = () => { stopVoiceWeb(); };
+    voiceRecog.start();
+  };
+}
+
+function stopVoiceWeb() {
+  try { voiceRecog?.stop(); } catch (_) {}
+  voiceListening = false;
+  const fab = $('voice-fab');
+  const bubble = $('voice-bubble');
+  if (fab) { fab.classList.remove('listening'); fab.textContent = '🎤'; }
+  setTimeout(() => { if (bubble) bubble.style.display = 'none'; }, 3000);
 }
 
 document.addEventListener('DOMContentLoaded', () => {
