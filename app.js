@@ -252,6 +252,9 @@ function getWebSep(drink) {
   return drink.mixers ? ' + ' : ' ';
 }
 
+// Estado del modal de marca expuesto para la voz
+let _brandModalState = null;
+
 function openBrandModal(drink, onSelect) {
   const modal = $('brand-modal');
   const steps = buildStepsWeb(drink);
@@ -264,6 +267,9 @@ function openBrandModal(drink, onSelect) {
     const current = steps[stepIndex];
     $('modal-drink-title').textContent = `${drink.emoji}  ${drink.name}`;
     $('modal-label').textContent = current.label;
+
+    // Exponer opciones actuales para el reconocimiento de voz
+    _brandModalState = { options: current.options, selectOption };
 
     const backEl = $('modal-back');
     if (stepIndex > 0) {
@@ -280,25 +286,28 @@ function openBrandModal(drink, onSelect) {
       const btn = document.createElement('button');
       btn.className = 'modal-option';
       btn.innerHTML = `<span>${opt}</span><span class="modal-option-arrow">›</span>`;
-      btn.onclick = () => {
-        const newValues = [...stepValues, opt];
-        if (stepIndex < steps.length - 1) {
-          stepValues = newValues;
-          stepIndex++;
-          renderStep();
-        } else {
-          closeModal();
-          onSelect(newValues.join(sep));
-        }
-      };
+      btn.onclick = () => selectOption(opt);
       optionsEl.appendChild(btn);
     });
+  }
+
+  function selectOption(opt) {
+    const newValues = [...stepValues, opt];
+    if (stepIndex < steps.length - 1) {
+      stepValues = newValues;
+      stepIndex++;
+      renderStep();
+    } else {
+      closeModal();
+      onSelect(newValues.join(sep));
+    }
   }
 
   function closeModal() {
     modal.style.display = 'none';
     modal.onclick = null;
     $('modal-cancel').onclick = null;
+    _brandModalState = null;
   }
 
   $('modal-cancel').onclick = closeModal;
@@ -1704,13 +1713,30 @@ function initVoiceFab() {
       const text = bubble.textContent.replace(/^🎤 "|"$/g, '').trim();
       stopVoiceWeb();
       if (!text || text === 'Escuchando...') return;
+
+      // Si el modal de marca está abierto, buscar entre sus opciones
+      if (_brandModalState) {
+        const norm = normVoice(text);
+        let best = null, bestLen = 0;
+        for (const opt of _brandModalState.options) {
+          const optNorm = normVoice(opt);
+          if (norm.includes(optNorm) && optNorm.length > bestLen) { best = opt; bestLen = optNorm.length; }
+        }
+        if (best) {
+          _brandModalState.selectOption(best);
+        } else {
+          alert('🎤 "' + text + '"\n\nNo coincide con ninguna opción. Prueba de nuevo.');
+        }
+        return;
+      }
+
+      // Buscar bebidas
       const matches = parseVoiceWeb(text);
       if (!matches.length) {
         alert('🎤 "' + text + '"\n\nNo he encontrado esa bebida, inténtalo de nuevo.');
         return;
       }
       const drinks = getAllDrinks();
-      // Procesar cada match: si tiene opciones abre modal, si no añade directo
       let directAdded = [];
       function processNext(idx) {
         if (idx >= matches.length) {
@@ -1725,7 +1751,6 @@ function initVoiceFab() {
         if (!drink) { processNext(idx + 1); return; }
         const hasOptions = drink.brands || drink.regions || drink.steps;
         if (hasOptions) {
-          // Abrir modal de selección para cada unidad
           let remaining = qty;
           function openNext() {
             if (remaining <= 0) { processNext(idx + 1); return; }
