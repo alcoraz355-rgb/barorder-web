@@ -1037,6 +1037,7 @@ function buildPedidos() {
 
 // ─── Confirmar pedido ─────────────────────────────────────────────────────────
 async function handleConfirmar() {
+  if (voiceActive) stopVoiceWeb();
   const pedidosSeleccionados = buildPedidos();
   if (!pedidosSeleccionados.length) {
     alert('Selecciona al menos una bebida');
@@ -1639,6 +1640,7 @@ function loadSession(mesaCodigo) {
 const VoiceRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
 let voiceRecog = null;
 let voiceListening = false;
+let voiceActive = false; // true desde que se activa hasta que se para manualmente
 
 function normVoice(str) {
   return (str || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
@@ -1686,29 +1688,32 @@ function parseVoiceWeb(transcript) {
   return Object.entries(results).map(([drinkId, qty]) => ({ drinkId, qty }));
 }
 
-function startVoiceWeb() {
+function _voiceListen() {
   const fab = $('voice-fab');
   const bubble = $('voice-bubble');
-  if (!fab || !VoiceRecognition || voiceListening) return;
+  if (!VoiceRecognition || voiceListening) return;
   voiceRecog = new VoiceRecognition();
   voiceRecog.lang = 'es-ES';
   voiceRecog.continuous = false;
   voiceRecog.interimResults = true;
   voiceListening = true;
-  fab.classList.add('listening');
-  fab.textContent = '⏹';
-  bubble.style.display = 'block';
-  bubble.textContent = '🎤 Escuchando...';
+  if (bubble) { bubble.style.display = 'block'; bubble.textContent = '🎤 Escuchando...'; }
 
   voiceRecog.onresult = (e) => {
     let transcript = '';
     for (let i = 0; i < e.results.length; i++) transcript += e.results[i][0].transcript;
-    bubble.textContent = '🎤 "' + transcript + '"';
+    if (bubble) bubble.textContent = '🎤 "' + transcript + '"';
   };
+
   voiceRecog.onend = () => {
-    const text = bubble.textContent.replace(/^🎤 "|"$/g, '').trim();
-    stopVoiceWeb();
-    if (!text || text === 'Escuchando...') return;
+    voiceListening = false;
+    const text = (bubble?.textContent || '').replace(/^🎤 "|"$/g, '').trim();
+
+    if (!text || text === 'Escuchando...') {
+      // Silencio — seguir escuchando
+      if (voiceActive) setTimeout(_voiceListen, 300);
+      return;
+    }
 
     // Si el modal de marca está abierto, buscar entre sus opciones
     if (_brandModalState) {
@@ -1720,23 +1725,17 @@ function startVoiceWeb() {
       }
       if (best) {
         _brandModalState.selectOption(best);
-        // Si el modal sigue abierto (siguiente paso), seguir escuchando
-        if (_brandModalState) {
-          setTimeout(() => startVoiceWeb(), 300);
-        }
-      } else {
-        alert('🎤 "' + text + '"\n\nNo coincide con ninguna opción. Prueba de nuevo.');
-        if (_brandModalState) {
-          setTimeout(() => startVoiceWeb(), 300);
-        }
       }
+      // Seguir escuchando (modal siguiente paso o nueva bebida)
+      if (voiceActive) setTimeout(_voiceListen, 400);
       return;
     }
 
     // Buscar bebidas
     const matches = parseVoiceWeb(text);
     if (!matches.length) {
-      alert('🎤 "' + text + '"\n\nNo he encontrado esa bebida, inténtalo de nuevo.');
+      if (bubble) bubble.textContent = '🎤 No encontrado, sigo escuchando...';
+      if (voiceActive) setTimeout(_voiceListen, 800);
       return;
     }
     const drinks = getAllDrinks();
@@ -1745,8 +1744,10 @@ function startVoiceWeb() {
       if (idx >= matches.length) {
         if (directAdded.length) {
           renderDrinks();
-          alert('🎤 Añadido:\n' + directAdded.join('\n'));
+          if (bubble) bubble.textContent = '🎤 ' + directAdded.join(', ');
         }
+        // Seguir escuchando para más pedidos
+        if (voiceActive) setTimeout(_voiceListen, 600);
         return;
       }
       const { drinkId, qty } = matches[idx];
@@ -1765,8 +1766,8 @@ function startVoiceWeb() {
             renderDrinks();
             openNext();
           });
-          // Activar mic automáticamente para el modal
-          setTimeout(() => startVoiceWeb(), 500);
+          // Seguir escuchando dentro del modal
+          if (voiceActive) setTimeout(_voiceListen, 500);
         }
         openNext();
       } else {
@@ -1779,29 +1780,40 @@ function startVoiceWeb() {
     }
     processNext(0);
   };
-  voiceRecog.onerror = () => { stopVoiceWeb(); };
+
+  voiceRecog.onerror = () => {
+    voiceListening = false;
+    if (voiceActive) setTimeout(_voiceListen, 500);
+  };
   voiceRecog.start();
 }
 
-function initVoiceFab() {
+function startVoiceWeb() {
+  voiceActive = true;
   const fab = $('voice-fab');
-  const bubble = $('voice-bubble');
-  if (!fab || !VoiceRecognition) { if (fab) fab.style.display = 'none'; return; }
-  fab.style.display = 'flex';
-
-  fab.onclick = () => {
-    if (voiceListening) { stopVoiceWeb(); return; }
-    startVoiceWeb();
-  };
+  if (fab) { fab.classList.add('listening'); fab.textContent = '⏹'; }
+  _voiceListen();
 }
 
 function stopVoiceWeb() {
+  voiceActive = false;
   try { voiceRecog?.stop(); } catch (_) {}
   voiceListening = false;
   const fab = $('voice-fab');
   const bubble = $('voice-bubble');
   if (fab) { fab.classList.remove('listening'); fab.textContent = '🎤'; }
-  setTimeout(() => { if (bubble) bubble.style.display = 'none'; }, 3000);
+  setTimeout(() => { if (bubble) bubble.style.display = 'none'; }, 2000);
+}
+
+function initVoiceFab() {
+  const fab = $('voice-fab');
+  if (!fab || !VoiceRecognition) { if (fab) fab.style.display = 'none'; return; }
+  fab.style.display = 'flex';
+
+  fab.onclick = () => {
+    if (voiceActive) { stopVoiceWeb(); return; }
+    startVoiceWeb();
+  };
 }
 
 document.addEventListener('DOMContentLoaded', () => {
