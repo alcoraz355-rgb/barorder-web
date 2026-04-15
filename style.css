@@ -717,7 +717,7 @@ button {
   border: 1px solid #ccc;
   font-size: 24px;
   display: none; align-items: center; justify-content: center;
-  z-index: 50;
+  z-index: 200;
   box-shadow: 0 4px 16px rgba(0,0,0,0.3);
   -webkit-tap-highlight-color: transparent;
   cursor: pointer;
@@ -742,7 +742,7 @@ button {
   color: #CCC;
   font-size: 13px;
   font-style: italic;
-  z-index: 51;
+  z-index: 201;
 }
 
 /* ── Chat FAB flotante ───────────────────────────────────────── */
