@@ -1926,28 +1926,32 @@ function _voiceStartSession() {
 function stopVoiceAndProcess() {
   if (!voiceActive) return;
   const bubble = $('voice-bubble');
-  const fullText = _voiceFullText;
+
+  // Leer texto de la burbuja como fallback (siempre tiene lo más reciente)
+  const bubbleRaw = (bubble?.textContent || '').replace(/^🎤\s*"?|"?\s*$/g, '').trim();
+  const fullText = (_voiceFullText && _voiceFullText.length > 2) ? _voiceFullText : bubbleRaw;
 
   // Parar reconocimiento
   voiceActive = false;
   clearTimeout(_voiceTimer);
+  try { voiceRecog?.abort(); } catch (_) {}
   try { voiceRecog?.stop(); } catch (_) {}
   voiceRecog = null;
   voiceListening = false;
   const fab = $('voice-fab');
   if (fab) { fab.classList.remove('listening'); fab.textContent = '🎤'; }
 
-  if (!fullText || fullText.startsWith('Habla...')) {
+  if (!fullText || fullText === 'Habla... pulsa ⏹ para procesar' || fullText === 'Procesando...') {
     if (bubble) bubble.style.display = 'none';
     return;
   }
 
-  if (bubble) bubble.textContent = '🎤 Procesando...';
+  if (bubble) bubble.textContent = '🎤 Procesando: "' + fullText + '"';
 
   const matches = parseVoiceWeb(fullText);
   if (!matches.length) {
     if (bubble) bubble.textContent = '🎤 "' + fullText + '" — no encontrado';
-    setTimeout(() => { if (bubble) bubble.style.display = 'none'; }, 3000);
+    setTimeout(() => { if (bubble) bubble.style.display = 'none'; }, 5000);
     return;
   }
 
