@@ -749,7 +749,7 @@ button {
 /* ── Chat FAB flotante ───────────────────────────────────────── */
 .chat-fab {
   position: fixed;
-  bottom: calc(50% - 62px); right: 6px;
+  bottom: 50%; right: 62px;
   width: 54px; height: 54px;
   border-radius: 50%;
   background: var(--surface);

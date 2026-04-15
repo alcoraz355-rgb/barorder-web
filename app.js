@@ -1691,25 +1691,29 @@ function parseVoiceWeb(transcript) {
 function _voiceListen() {
   const fab = $('voice-fab');
   const bubble = $('voice-bubble');
-  if (!VoiceRecognition || voiceListening) return;
+  if (!VoiceRecognition || !voiceActive) return;
+  // Asegurarse de parar el anterior si queda colgado
+  if (voiceListening) { try { voiceRecog?.stop(); } catch (_) {} voiceListening = false; }
   voiceRecog = new VoiceRecognition();
   voiceRecog.lang = 'es-ES';
   voiceRecog.continuous = false;
   voiceRecog.interimResults = true;
   voiceListening = true;
+  let lastTranscript = '';
   if (bubble) { bubble.style.display = 'block'; bubble.textContent = '🎤 Escuchando...'; }
 
   voiceRecog.onresult = (e) => {
     let transcript = '';
     for (let i = 0; i < e.results.length; i++) transcript += e.results[i][0].transcript;
+    lastTranscript = transcript;
     if (bubble) bubble.textContent = '🎤 "' + transcript + '"';
   };
 
   voiceRecog.onend = () => {
     voiceListening = false;
-    const text = (bubble?.textContent || '').replace(/^🎤 "|"$/g, '').trim();
+    const text = lastTranscript.trim();
 
-    if (!text || text === 'Escuchando...') {
+    if (!text) {
       // Silencio — seguir escuchando
       if (voiceActive) setTimeout(_voiceListen, 300);
       return;
