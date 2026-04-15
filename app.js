@@ -1754,7 +1754,7 @@ function startVoiceWeb() {
 function _voiceStartSession() {
   if (!voiceActive) return;
   const bubble = $('voice-bubble');
-  let sessionText = '';
+  const baseText = _voiceFullText; // lo acumulado antes de esta sesión
 
   voiceRecog = new VoiceRecognition();
   voiceRecog.lang = 'es-ES';
@@ -1771,16 +1771,14 @@ function _voiceStartSession() {
         interim += e.results[i][0].transcript;
       }
     }
-    sessionText = final.trim();
-    const display = (_voiceFullText + ' ' + final + interim).trim();
+    // Acumular finales directamente
+    _voiceFullText = (baseText + ' ' + final).trim();
+    const display = (_voiceFullText + ' ' + interim).trim();
     if (bubble && display) bubble.textContent = '🎤 "' + display + '"';
   };
 
   voiceRecog.onend = () => {
     voiceListening = false;
-    // Guardar lo finalizado de esta sesión
-    if (sessionText) _voiceFullText = (_voiceFullText + ' ' + sessionText).trim();
-    // Reiniciar nueva sesión si sigue activo
     if (voiceActive) {
       _voiceTimer = setTimeout(_voiceStartSession, 300);
     }
@@ -1788,7 +1786,6 @@ function _voiceStartSession() {
 
   voiceRecog.onerror = (e) => {
     voiceListening = false;
-    if (sessionText) _voiceFullText = (_voiceFullText + ' ' + sessionText).trim();
     if (voiceActive && (e.error === 'no-speech' || e.error === 'network')) {
       _voiceTimer = setTimeout(_voiceStartSession, 300);
     }
@@ -1800,9 +1797,7 @@ function _voiceStartSession() {
 function stopVoiceAndProcess() {
   if (!voiceActive) return;
   const bubble = $('voice-bubble');
-  // Capturar texto final de la burbuja (puede tener interim no guardado en _voiceFullText)
-  const bubbleText = (bubble?.textContent || '').replace(/^🎤 "|"$/g, '').trim();
-  const fullText = bubbleText.length > _voiceFullText.length ? bubbleText : _voiceFullText;
+  const fullText = _voiceFullText;
 
   // Parar reconocimiento
   voiceActive = false;
