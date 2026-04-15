@@ -1641,7 +1641,7 @@ function loadSession(mesaCodigo) {
 
 // ─── Voz (Web Speech API) — versión simple ────────────────────────────────────
 const VoiceRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-let _voz = { recog: null, active: false, text: '' };
+let _voz = { recog: null, active: false, chunks: [], display: '' };
 
 function _norm(s) { return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim(); }
 
@@ -1731,50 +1731,57 @@ function _vozFindOpt(text, options) {
   return best;
 }
 
-function parseVoiceWeb(transcript) {
-  const full = _norm(transcript);
-  // Dividir por conectores y silencios (representados como "y")
-  const chunks = full.split(/\s+(?:y|e)\s+/).filter(c => c.trim());
+// Procesar cada chunk (frase entre silencios) como un pedido independiente
+function parseVoiceChunks(chunks) {
   const drinks = getAllDrinks();
   const results = [];
 
-  for (let chunk of chunks) {
-    chunk = chunk.trim();
+  for (let raw of chunks) {
+    // Limpiar: quitar artículos, normalizar
+    let chunk = _norm(raw).replace(/\b(un|una|uno|el|la|los|las|del|de|al|para|por|dame|ponme|quiero|pon|me|pones)\b/g,' ').replace(/\s+/g,' ').trim();
     if (!chunk) continue;
 
-    // Extraer cantidad al inicio
-    let qty = 1;
-    const first = chunk.split(/\s+/)[0];
-    if (VOZ_NUMS[first]) { qty = VOZ_NUMS[first]; chunk = chunk.replace(/^\S+\s*/, ''); }
-    else if (/^\d+$/.test(first)) { qty = Math.min(parseInt(first,10),10); chunk = chunk.replace(/^\S+\s*/, ''); }
+    // También subdividir por "y" / "e" dentro del chunk
+    const subchunks = chunk.split(/\s+(?:y|e)\s+/).filter(c => c.trim());
 
-    const drinkId = _vozFindDrink(chunk, drinks);
-    if (!drinkId) continue;
+    for (let sub of subchunks) {
+      sub = sub.trim();
+      if (!sub) continue;
 
-    const drink = drinks.find(d => d.id === drinkId);
-    let selection = null;
+      // Extraer cantidad
+      let qty = 1;
+      const first = sub.split(/\s+/)[0];
+      if (VOZ_NUMS[first]) { qty = VOZ_NUMS[first]; sub = sub.replace(/^\S+\s*/, ''); }
+      else if (/^\d+$/.test(first)) { qty = Math.min(parseInt(first,10),10); sub = sub.replace(/^\S+\s*/, ''); }
 
-    if (drink) {
-      const sep = drink.sep || ' ';
-      if (drink.brands && drink.mixers) {
-        const brand = _vozFindOpt(chunk, drink.brands);
-        const mixer = _vozFindOpt(chunk, drink.mixers);
-        if (brand && mixer) selection = brand + sep + mixer;
-        else if (brand) selection = brand;
-        else if (mixer) selection = mixer;
-      } else if (drink.regions && drink.agings) {
-        const region = _vozFindOpt(chunk, drink.regions);
-        const aging = _vozFindOpt(chunk, drink.agings);
-        if (region && aging) selection = region + ' ' + aging;
-        else if (region) selection = region;
-        else if (aging) selection = aging;
-      } else if (drink.steps) {
-        const parts = [];
-        for (const step of drink.steps) { const m = _vozFindOpt(chunk, step.options); if (m) parts.push(m); }
-        if (parts.length) selection = parts.join(' ');
+      const drinkId = _vozFindDrink(sub, drinks);
+      if (!drinkId) continue;
+
+      const drink = drinks.find(d => d.id === drinkId);
+      let selection = null;
+
+      if (drink) {
+        const sep = drink.sep || ' ';
+        if (drink.brands && drink.mixers) {
+          const brand = _vozFindOpt(sub, drink.brands);
+          const mixer = _vozFindOpt(sub, drink.mixers);
+          if (brand && mixer) selection = brand + sep + mixer;
+          else if (brand) selection = brand;
+          else if (mixer) selection = mixer;
+        } else if (drink.regions && drink.agings) {
+          const region = _vozFindOpt(sub, drink.regions);
+          const aging = _vozFindOpt(sub, drink.agings);
+          if (region && aging) selection = region + ' ' + aging;
+          else if (region) selection = region;
+          else if (aging) selection = aging;
+        } else if (drink.steps) {
+          const parts = [];
+          for (const step of drink.steps) { const m = _vozFindOpt(sub, step.options); if (m) parts.push(m); }
+          if (parts.length) selection = parts.join(' ');
+        }
       }
+      results.push({ drinkId, qty, selection });
     }
-    results.push({ drinkId, qty, selection });
   }
   return results;
 }
@@ -1784,7 +1791,8 @@ function startVoiceWeb() {
   if (!VoiceRecognition) return;
   const fab = $('voice-fab'), bubble = $('voice-bubble');
   _voz.active = true;
-  _voz.text = '';
+  _voz.chunks = [];
+  _voz.display = '';
   fab.classList.add('listening');
   fab.textContent = '⏹';
   if (bubble) { bubble.style.display = 'block'; bubble.textContent = '🎤 Habla...'; }
@@ -1795,10 +1803,21 @@ function startVoiceWeb() {
   _voz.recog.interimResults = true;
 
   _voz.recog.onresult = (e) => {
-    let txt = '';
-    for (let i = 0; i < e.results.length; i++) txt += e.results[i][0].transcript;
-    _voz.text = txt;
-    if (bubble) bubble.textContent = '🎤 "' + txt + '"';
+    // Cada e.results[i] es una frase separada por silencio
+    const chunks = [];
+    let interim = '';
+    for (let i = 0; i < e.results.length; i++) {
+      const t = e.results[i][0].transcript.trim();
+      if (!t) continue;
+      if (e.results[i].isFinal) {
+        chunks.push(t);
+      } else {
+        interim = t;
+      }
+    }
+    _voz.chunks = chunks;
+    _voz.display = chunks.concat(interim ? [interim] : []).join(' | ');
+    if (bubble) bubble.textContent = '🎤 "' + _voz.display + '"';
   };
   _voz.recog.onend = () => { if (_voz.active) try { _voz.recog.start(); } catch(_){} };
   _voz.recog.onerror = () => { if (_voz.active) try { _voz.recog.start(); } catch(_){} };
@@ -1815,14 +1834,16 @@ function stopVoiceAndProcess() {
   fab.classList.remove('listening');
   fab.textContent = '🎤';
 
-  const text = _voz.text.trim();
-  if (!text) { if (bubble) bubble.style.display = 'none'; return; }
+  // Usar chunks (separados por silencio) o display como fallback
+  const chunks = _voz.chunks.length ? _voz.chunks : (_voz.display ? _voz.display.split(' | ') : []);
+  const fullText = chunks.join(' | ');
+  if (!fullText.trim()) { if (bubble) bubble.style.display = 'none'; return; }
 
   if (bubble) bubble.textContent = '🎤 Procesando...';
-  const matches = parseVoiceWeb(text);
+  const matches = parseVoiceChunks(chunks);
 
   if (!matches.length) {
-    if (bubble) bubble.textContent = '🎤 "' + text + '" — no encontrado';
+    if (bubble) bubble.textContent = '🎤 "' + fullText + '" — no encontrado';
     setTimeout(() => { if (bubble) bubble.style.display = 'none'; }, 4000);
     return;
   }
