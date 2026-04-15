@@ -200,7 +200,7 @@ function showScreen(name) {
   // Voz: solo visible en pantalla de pedidos
   const voiceBubble = $('voice-bubble');
   if (voiceBubble) voiceBubble.style.display = 'none';
-  if (name !== 'order' && voiceActive) stopVoiceWeb();
+  if (name !== 'order' && _voz.active) { _voz.active = false; try { _voz.recog?.stop(); } catch(_){} _voz.recog = null; }
   // Chat global: ocultar en order (tiene su propio botón integrado)
   const chatFab = $('chat-fab');
   if (chatFab) chatFab.style.display = (name === 'order') ? 'none' : '';
@@ -1040,7 +1040,7 @@ function buildPedidos() {
 
 // ─── Confirmar pedido ─────────────────────────────────────────────────────────
 async function handleConfirmar() {
-  if (voiceActive) { stopVoiceWeb(); }
+  if (_voz.active) { _voz.active = false; try { _voz.recog?.stop(); } catch(_){} _voz.recog = null; }
   const pedidosSeleccionados = buildPedidos();
   if (!pedidosSeleccionados.length) {
     alert('Selecciona al menos una bebida');
@@ -1639,328 +1639,198 @@ function loadSession(mesaCodigo) {
   } catch { return null; }
 }
 
-// ─── Voz (Web Speech API) ──────────────────────────────────────────────────────
+// ─── Voz (Web Speech API) — versión simple ────────────────────────────────────
 const VoiceRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-let voiceRecog = null;
-let voiceListening = false;
-let voiceActive = false;
-let _voiceTimer = null;
-let _voiceFullText = ''; // acumula todo lo dicho entre sesiones de reconocimiento
+let _voz = { recog: null, active: false, text: '' };
 
-function normVoice(str) {
-  return (str || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
-}
+function _norm(s) { return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim(); }
 
-// Quitar artículos y plurales para matching flexible
-function cleanVoice(str) {
-  let s = str.replace(/\b(un|una|uno|el|la|los|las|del|de|al|para|por|me|dame|ponme|quiero|pon)\b/g, ' ').replace(/\s+/g, ' ').trim();
-  // Plurales: cervezas→cerveza, mojitos→mojito, pepinillos→pepinillo
-  s = s.replace(/\b(\w{4,})s\b/g, '$1').replace(/\b(\w{4,})es\b/g, '$1');
-  return s;
-}
+const VOZ_NUMS = {un:1,una:1,uno:1,dos:2,tres:3,cuatro:4,cinco:5,seis:6,siete:7,ocho:8};
 
-const VOICE_NUM_WORDS = { un: 1, una: 1, uno: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5, seis: 6, siete: 7, ocho: 8 };
-const VOICE_ALIASES = {
-  c1: ['cerveza','birra','cana','canita','birrita','birritas','terci','botellin'],
-  c2: ['cerveza sin','sin alcohol','cerveza cero','sin'],
-  c3: ['clara','clarita'],
-  c4: ['jarra','jarrita'],
-  c5: ['cero cero limon','00 limon'],
-  c6: ['ipa','india pale'],
-  c7: ['tostada'],
-  c8: ['trigo'],
-  c9: ['radler'],
-  k1: ['mojito','mojit'],
-  k2: ['gin tonic','gintonic','gin','yintonic','jin tonic'],
-  k3: ['daiquiri','daiquir','daikiri'],
-  k4: ['margarita','margari'],
-  k5: ['pina colada','piña colada','pina cola'],
-  k6: ['aperol','aperol spritz','spritz','esprit'],
-  k7: ['negroni','negron'],
-  k8: ['cuba libre','cubata','cubalibre','cuba'],
-  k9: ['tinto de verano','tinto verano'],
-  k10: ['rebujito','rebujit'],
-  k11: ['bloody mary','bludi','bladi'],
-  k13: ['caipirinha','caipiriña','caipirin'],
-  k16: ['old fashioned'],
-  k17: ['whisky sour','wiski sour'],
-  s1: ['whisky','whiskey','guisqui','wiski','güisqui','wisqui'],
-  s2: ['ron','rum','ronci'],
-  s3: ['ginebra','vodka gin'],
-  s4: ['vodka','bodka'],
-  s5: ['tequila','tekila'],
-  s6: ['brandy','coñac','cognac','brandi'],
-  s7: ['chupito','chupit','shot'],
-  v1: ['vino tinto','tinto','vino'],
-  v2: ['vino blanco','blanco'],
-  v3: ['rosado','vino rosado'],
-  v4: ['sangria','sangría'],
-  v5: ['cava','champan','champaña'],
-  v6: ['vermut','vermuth','vermu'],
-  v7: ['fino'],
-  v8: ['manzanilla'],
-  v9: ['lambrusco'],
-  v10: ['prosecco','proseco'],
-  l1: ['baileys','bailey','beilis'],
-  l2: ['jagermeister','jagger','yager'],
-  l3: ['licor cafe','licor de cafe'],
-  l4: ['pacharan','patxaran'],
-  l5: ['orujo'],
-  l6: ['amaretto','amareto'],
-  n1: ['agua','agua mineral','agüita'],
-  n13: ['agua con gas','agua gas'],
-  n2: ['coca cola','cocacola','cola','coca'],
-  n3: ['cola light','coca light'],
-  n14: ['cola zero','coca zero','zero'],
-  n4: ['fanta naranja','fanta','naranjada'],
-  n5: ['fanta limon','limonada fanta'],
-  n12: ['tonica','tónica','agua tonica'],
-  n7: ['limonada','limonad'],
-  n8: ['redbull','red bull','energetica','monster'],
-  n9: ['zumo naranja','zumo de naranja','zumo'],
-  n10: ['cafe','café','cafecito','cortado','solo cafe'],
-  n11: ['te','té','infusion','infusión','manzanilla te'],
-  // Aperitivos
-  a1: ['patatas','patata','fritas','papas'],
-  a2: ['olivas','aceitunas','oliva','aceituna'],
-  a3: ['pepinillos','pepinillo','pepini'],
-  a4: ['revuelto'],
-  a5: ['gambas','gamba','gambita'],
-  a6: ['calamares','calamar','calama'],
-  a7: ['tostadas','tostada pan','tosta'],
-  a8: ['tapas','tapa'],
-};
+// Todos los alias: id → [nombres alternativos normalizados]
+const VOZ_ALIAS = {};
+(function(){
+  const raw = {
+    c1:'cerveza,birra,caña,cana,canita,terci,botellin,birrita',
+    c2:'cerveza sin,sin alcohol,cerveza cero',c3:'clara,clarita',c4:'jarra,jarrita',
+    c5:'cero cero limon',c6:'ipa',c7:'tostada',c8:'trigo',c9:'radler',
+    k1:'mojito',k2:'gin tonic,gintonic,yintonic,jin tonic',k3:'daiquiri,daikiri',
+    k4:'margarita',k5:'pina colada,piña colada',k6:'aperol,spritz,aperol spritz',
+    k7:'negroni',k8:'cuba libre,cubata,cubalibre',k9:'tinto de verano,tinto verano',
+    k10:'rebujito',k11:'bloody mary',k13:'caipirinha',k16:'old fashioned',
+    k17:'whisky sour',
+    s1:'whisky,whiskey,guisqui,wiski,wisqui,güisqui',s2:'ron,rum',
+    s3:'ginebra',s4:'vodka,bodka',s5:'tequila,tekila',
+    s6:'brandy,coñac,cognac,brandi',s7:'chupito,shot',
+    v1:'vino tinto,tinto,vino',v2:'vino blanco,blanco',v3:'rosado,vino rosado',
+    v4:'sangria',v5:'cava,champan',v6:'vermut,vermuth,vermu',
+    v7:'fino',v8:'manzanilla',v9:'lambrusco',v10:'prosecco',
+    l1:'baileys,beilis',l2:'jagermeister,jagger',l3:'licor cafe',
+    l4:'pacharan,patxaran',l5:'orujo',l6:'amaretto',
+    n1:'agua,agua mineral',n13:'agua con gas',
+    n2:'coca cola,cocacola,coca',n3:'cola light,coca light',
+    n14:'cola zero,coca zero',n4:'fanta naranja,fanta,naranjada',
+    n5:'fanta limon',n12:'tonica,agua tonica',
+    n7:'limonada',n8:'redbull,red bull,monster,energetica',
+    n9:'zumo naranja,zumo de naranja,zumo',n10:'cafe,cafecito,cortado',
+    n11:'te,infusion',
+    a1:'patatas,patata,fritas,papas',a2:'olivas,aceitunas,aceituna',
+    a3:'pepinillos,pepinillo',a4:'revuelto',a5:'gambas,gamba',
+    a6:'calamares,calamar',a7:'tostadas,tosta',a8:'tapas,tapa',
+  };
+  for (const [id,v] of Object.entries(raw)) VOZ_ALIAS[id] = v.split(',').map(s=>_norm(s));
+})();
 
-function _fuzzyMatch(word, target) {
-  if (target.includes(word) || word.includes(target)) return true;
-  if (word.length >= 3 && target.startsWith(word)) return true;
-  if (target.length >= 3 && word.startsWith(target)) return true;
-  // Similitud: si difieren en 1-2 letras (typos del reconocedor)
-  if (word.length >= 4 && target.length >= 4 && Math.abs(word.length - target.length) <= 2) {
-    let matches = 0;
-    const shorter = word.length <= target.length ? word : target;
-    const longer = word.length > target.length ? word : target;
-    for (let i = 0; i < shorter.length; i++) { if (longer.includes(shorter[i])) matches++; }
-    if (matches / shorter.length >= 0.75) return true;
+// Buscar una bebida en un trozo de texto. Devuelve {id, consumed} o null
+function _vozFindDrink(text, drinks) {
+  let bestId = null, bestLen = 0;
+  // 1) Alias (priorizamos frases más largas)
+  for (const [id, aliases] of Object.entries(VOZ_ALIAS)) {
+    for (const a of aliases) {
+      if (text.includes(a) && a.length > bestLen) { bestId = id; bestLen = a.length; }
+    }
   }
-  return false;
+  // 2) Nombres del catálogo
+  for (const d of drinks) {
+    const n = _norm(d.name);
+    if (text.includes(n) && n.length > bestLen) { bestId = d.id; bestLen = n.length; }
+  }
+  // 3) Parcial: si alguna palabra del texto (>=4 letras) empieza como un alias/nombre
+  if (!bestId) {
+    const words = text.split(/\s+/);
+    for (const w of words) {
+      if (w.length < 4) continue;
+      for (const [id, aliases] of Object.entries(VOZ_ALIAS)) {
+        for (const a of aliases) {
+          if ((a.startsWith(w) || w.startsWith(a)) && a.length > bestLen) { bestId = id; bestLen = a.length; }
+        }
+      }
+      if (!bestId) {
+        for (const d of drinks) {
+          const n = _norm(d.name);
+          if ((n.startsWith(w) || w.startsWith(n)) && n.length > bestLen) { bestId = d.id; bestLen = n.length; }
+        }
+      }
+    }
+  }
+  return bestId;
 }
 
-function _findInList(text, list) {
+// Buscar marca/mixer/región en texto
+function _vozFindOpt(text, options) {
   let best = null, bestLen = 0;
-  const words = text.split(/\s+/);
-  const cleaned = cleanVoice(text);
-  const cleanWords = cleaned.split(/\s+/);
-  for (const item of list) {
-    const n = normVoice(item);
-    // Exacta
-    if (text.includes(n) && n.length > bestLen) { best = item; bestLen = n.length; }
-    if (cleaned.includes(n) && n.length > bestLen) { best = item; bestLen = n.length; }
-    // Parcial por palabra
-    for (const w of cleanWords) {
-      if (w.length >= 3 && _fuzzyMatch(w, n) && n.length > bestLen) { best = item; bestLen = n.length; }
+  for (const opt of options) {
+    const n = _norm(opt);
+    if (text.includes(n) && n.length > bestLen) { best = opt; bestLen = n.length; }
+    // Parcial
+    const words = text.split(/\s+/);
+    for (const w of words) {
+      if (w.length >= 4 && (n.startsWith(w) || w.startsWith(n)) && n.length > bestLen) { best = opt; bestLen = n.length; }
     }
   }
   return best;
 }
 
-function _matchDrink(word, drinks) {
-  const w = cleanVoice(normVoice(word));
-  if (!w || w.length < 3) return null;
-  // Buscar por alias (priorizar matches exactos)
-  for (const [drinkId, aliasList] of Object.entries(VOICE_ALIASES)) {
-    for (const alias of aliasList) {
-      const an = normVoice(alias);
-      if (w === an || w.includes(an) || an.includes(w)) return drinkId;
-    }
-  }
-  // Buscar por nombre exacto
-  for (const d of drinks) {
-    const dn = normVoice(d.name);
-    if (w === dn || w.includes(dn) || dn.includes(w)) return d.id;
-  }
-  // Fuzzy por alias
-  for (const [drinkId, aliasList] of Object.entries(VOICE_ALIASES)) {
-    for (const alias of aliasList) {
-      if (_fuzzyMatch(w, normVoice(alias))) return drinkId;
-    }
-  }
-  // Fuzzy por nombre
-  for (const d of drinks) {
-    if (_fuzzyMatch(w, normVoice(d.name))) return d.id;
-  }
-  return null;
-}
-
 function parseVoiceWeb(transcript) {
-  const text = cleanVoice(normVoice(transcript));
-  const words = text.split(/\s+/).filter(w => w.length > 0);
+  const full = _norm(transcript);
+  // Dividir por conectores y silencios (representados como "y")
+  const chunks = full.split(/\s+(?:y|e)\s+/).filter(c => c.trim());
   const drinks = getAllDrinks();
   const results = [];
 
-  let i = 0;
-  while (i < words.length) {
-    // Extraer cantidad si hay número
+  for (let chunk of chunks) {
+    chunk = chunk.trim();
+    if (!chunk) continue;
+
+    // Extraer cantidad al inicio
     let qty = 1;
-    if (VOICE_NUM_WORDS[words[i]]) { qty = VOICE_NUM_WORDS[words[i]]; i++; if (i >= words.length) break; }
-    else if (/^\d+$/.test(words[i])) { const n = parseInt(words[i], 10); if (n > 0 && n <= 10) { qty = n; i++; if (i >= words.length) break; } }
+    const first = chunk.split(/\s+/)[0];
+    if (VOZ_NUMS[first]) { qty = VOZ_NUMS[first]; chunk = chunk.replace(/^\S+\s*/, ''); }
+    else if (/^\d+$/.test(first)) { qty = Math.min(parseInt(first,10),10); chunk = chunk.replace(/^\S+\s*/, ''); }
 
-    // Intentar match con 3 palabras, luego 2, luego 1
-    let matchedId = null;
-    let matchLen = 0;
-    for (let len = Math.min(3, words.length - i); len >= 1; len--) {
-      const phrase = words.slice(i, i + len).join(' ');
-      const id = _matchDrink(phrase, drinks);
-      if (id) { matchedId = id; matchLen = len; break; }
-    }
+    const drinkId = _vozFindDrink(chunk, drinks);
+    if (!drinkId) continue;
 
-    if (!matchedId) {
-      // Saltar conector o palabra no reconocida
-      i++;
-      continue;
-    }
-
-    i += matchLen;
-
-    // Buscar marca/mixer/región en las palabras siguientes
-    const drink = drinks.find((d) => d.id === matchedId);
+    const drink = drinks.find(d => d.id === drinkId);
     let selection = null;
 
     if (drink) {
-      // Recoger las palabras restantes hasta el próximo match de bebida o conector
-      let extraWords = [];
-      let j = i;
-      while (j < words.length) {
-        if (['y', 'e', 'mas', 'tambien', 'ademas'].includes(words[j])) { j++; break; }
-        // Comprobar si es otra bebida (no consumir)
-        const nextPhrase = words.slice(j, j + Math.min(2, words.length - j)).join(' ');
-        if (_matchDrink(words[j], drinks) || _matchDrink(nextPhrase, drinks)) break;
-        if (VOICE_NUM_WORDS[words[j]] || /^\d+$/.test(words[j])) break;
-        extraWords.push(words[j]);
-        j++;
-      }
-      i = j;
-
-      const extra = extraWords.join(' ');
       const sep = drink.sep || ' ';
-
       if (drink.brands && drink.mixers) {
-        const brand = _findInList(extra, drink.brands);
-        const mixer = _findInList(extra, drink.mixers);
+        const brand = _vozFindOpt(chunk, drink.brands);
+        const mixer = _vozFindOpt(chunk, drink.mixers);
         if (brand && mixer) selection = brand + sep + mixer;
         else if (brand) selection = brand;
         else if (mixer) selection = mixer;
       } else if (drink.regions && drink.agings) {
-        const region = _findInList(extra, drink.regions);
-        const aging = _findInList(extra, drink.agings);
+        const region = _vozFindOpt(chunk, drink.regions);
+        const aging = _vozFindOpt(chunk, drink.agings);
         if (region && aging) selection = region + ' ' + aging;
         else if (region) selection = region;
         else if (aging) selection = aging;
       } else if (drink.steps) {
         const parts = [];
-        for (const step of drink.steps) {
-          const match = _findInList(extra, step.options);
-          if (match) parts.push(match);
-        }
+        for (const step of drink.steps) { const m = _vozFindOpt(chunk, step.options); if (m) parts.push(m); }
         if (parts.length) selection = parts.join(' ');
       }
     }
-
-    results.push({ drinkId: matchedId, qty, selection });
+    results.push({ drinkId, qty, selection });
   }
   return results;
 }
 
+// ── Controles de voz ──────────────────────────────────────────
 function startVoiceWeb() {
-  const fab = $('voice-fab');
-  const bubble = $('voice-bubble');
   if (!VoiceRecognition) return;
-  voiceActive = true;
-  _voiceFullText = '';
+  const fab = $('voice-fab'), bubble = $('voice-bubble');
+  _voz.active = true;
+  _voz.text = '';
   fab.classList.add('listening');
   fab.textContent = '⏹';
-  if (bubble) { bubble.style.display = 'block'; bubble.textContent = '🎤 Habla... pulsa ⏹ para procesar'; }
-  _voiceStartSession();
-}
+  if (bubble) { bubble.style.display = 'block'; bubble.textContent = '🎤 Habla...'; }
 
-function _voiceStartSession() {
-  if (!voiceActive) return;
-  const bubble = $('voice-bubble');
-  const baseText = _voiceFullText; // lo acumulado antes de esta sesión
+  _voz.recog = new VoiceRecognition();
+  _voz.recog.lang = 'es-ES';
+  _voz.recog.continuous = true;
+  _voz.recog.interimResults = true;
 
-  voiceRecog = new VoiceRecognition();
-  voiceRecog.lang = 'es-ES';
-  voiceRecog.continuous = true;
-  voiceRecog.interimResults = true;
-  voiceListening = true;
-
-  voiceRecog.onresult = (e) => {
-    const parts = [];
-    for (let i = 0; i < e.results.length; i++) {
-      const t = e.results[i][0].transcript.trim();
-      if (t) parts.push(t);
-    }
-    // Cada resultado (separado por silencio) se une con " y "
-    const sessionText = parts.join(' y ');
-    _voiceFullText = baseText ? (baseText + ' y ' + sessionText) : sessionText;
-    if (bubble && _voiceFullText) bubble.textContent = '🎤 "' + _voiceFullText + '"';
+  _voz.recog.onresult = (e) => {
+    let txt = '';
+    for (let i = 0; i < e.results.length; i++) txt += e.results[i][0].transcript;
+    _voz.text = txt;
+    if (bubble) bubble.textContent = '🎤 "' + txt + '"';
   };
-
-  voiceRecog.onend = () => {
-    voiceListening = false;
-    if (voiceActive) {
-      _voiceTimer = setTimeout(_voiceStartSession, 300);
-    }
-  };
-
-  voiceRecog.onerror = (e) => {
-    voiceListening = false;
-    if (voiceActive && (e.error === 'no-speech' || e.error === 'network')) {
-      _voiceTimer = setTimeout(_voiceStartSession, 300);
-    }
-  };
-
-  voiceRecog.start();
+  _voz.recog.onend = () => { if (_voz.active) try { _voz.recog.start(); } catch(_){} };
+  _voz.recog.onerror = () => { if (_voz.active) try { _voz.recog.start(); } catch(_){} };
+  _voz.recog.start();
 }
 
 function stopVoiceAndProcess() {
-  if (!voiceActive) return;
-  const bubble = $('voice-bubble');
+  if (!_voz.active) return;
+  _voz.active = false;
+  try { _voz.recog?.stop(); } catch(_){}
+  _voz.recog = null;
 
-  // Leer texto de la burbuja como fallback (siempre tiene lo más reciente)
-  const bubbleRaw = (bubble?.textContent || '').replace(/^🎤\s*"?|"?\s*$/g, '').trim();
-  const fullText = (_voiceFullText && _voiceFullText.length > 2) ? _voiceFullText : bubbleRaw;
+  const fab = $('voice-fab'), bubble = $('voice-bubble');
+  fab.classList.remove('listening');
+  fab.textContent = '🎤';
 
-  // Parar reconocimiento
-  voiceActive = false;
-  clearTimeout(_voiceTimer);
-  try { voiceRecog?.abort(); } catch (_) {}
-  try { voiceRecog?.stop(); } catch (_) {}
-  voiceRecog = null;
-  voiceListening = false;
-  const fab = $('voice-fab');
-  if (fab) { fab.classList.remove('listening'); fab.textContent = '🎤'; }
+  const text = _voz.text.trim();
+  if (!text) { if (bubble) bubble.style.display = 'none'; return; }
 
-  if (!fullText || fullText === 'Habla... pulsa ⏹ para procesar' || fullText === 'Procesando...') {
-    if (bubble) bubble.style.display = 'none';
-    return;
-  }
+  if (bubble) bubble.textContent = '🎤 Procesando...';
+  const matches = parseVoiceWeb(text);
 
-  if (bubble) bubble.textContent = '🎤 Procesando: "' + fullText + '"';
-
-  const matches = parseVoiceWeb(fullText);
   if (!matches.length) {
-    if (bubble) bubble.textContent = '🎤 "' + fullText + '" — no encontrado';
-    setTimeout(() => { if (bubble) bubble.style.display = 'none'; }, 5000);
+    if (bubble) bubble.textContent = '🎤 "' + text + '" — no encontrado';
+    setTimeout(() => { if (bubble) bubble.style.display = 'none'; }, 4000);
     return;
   }
 
   const drinks = getAllDrinks();
-  let added = [];
-
-  // Añadir todo directamente sin abrir modals
+  const added = [];
   for (const { drinkId, qty, selection } of matches) {
-    const drink = drinks.find((x) => x.id === drinkId);
+    const drink = drinks.find(x => x.id === drinkId);
     if (!drink) continue;
     for (let i = 0; i < qty; i++) {
       state.quantities[drinkId] = (state.quantities[drinkId] || 0) + 1;
@@ -1969,47 +1839,23 @@ function stopVoiceAndProcess() {
         state.brandSelections[drinkId].push(selection);
       }
     }
-    let label = (drink.emoji || '') + ' ' + drink.name;
+    let label = (drink.emoji||'') + ' ' + drink.name;
     if (selection) label += ' ' + selection;
     if (qty > 1) label += ' ×' + qty;
     added.push(label);
   }
-
   renderDrinks();
   if (bubble) bubble.textContent = '🎤 ' + added.join(', ');
-
-  // Scroll a la última bebida añadida
-  const lastId = matches[matches.length - 1].drinkId;
-  setTimeout(() => {
-    const el = document.getElementById('card-' + lastId);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  }, 100);
+  const lastId = matches[matches.length-1].drinkId;
+  setTimeout(() => { const el = document.getElementById('card-'+lastId); if (el) el.scrollIntoView({behavior:'smooth',block:'center'}); }, 150);
   setTimeout(() => { if (bubble) bubble.style.display = 'none'; }, 4000);
-}
-
-function stopVoiceWeb() {
-  voiceActive = false;
-  clearTimeout(_voiceTimer);
-  _voiceTimer = null;
-  try { voiceRecog?.abort(); } catch (_) {}
-  voiceRecog = null;
-  voiceListening = false;
-  const fab = $('voice-fab');
-  const bubble = $('voice-bubble');
-  if (fab) { fab.classList.remove('listening'); fab.textContent = '🎤'; }
-  if (bubble) bubble.style.display = 'none';
 }
 
 function initVoiceFab() {
   const fab = $('voice-fab');
   if (!fab || !VoiceRecognition) { if (fab) fab.style.display = 'none'; return; }
   fab.style.display = 'flex';
-
-  fab.onclick = () => {
-    if (voiceActive) { stopVoiceAndProcess(); return; }
-    startVoiceWeb();
-  };
-
+  fab.onclick = () => { if (_voz.active) stopVoiceAndProcess(); else startVoiceWeb(); };
   const orderChatFab = $('order-chat-fab');
   if (orderChatFab) orderChatFab.onclick = () => openChat();
 }
