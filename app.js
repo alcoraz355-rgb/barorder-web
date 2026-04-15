@@ -1746,11 +1746,20 @@ function _voiceListen() {
     }
     const drinks = getAllDrinks();
     let directAdded = [];
+
+    function scrollToDrink(drinkId) {
+      setTimeout(() => {
+        const el = document.getElementById('card-' + drinkId);
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+    }
+
     function processNext(idx) {
       if (idx >= matches.length) {
         if (directAdded.length) {
           renderDrinks();
           if (bubble) bubble.textContent = '🎤 ' + directAdded.join(', ');
+          scrollToDrink(matches[matches.length - 1].drinkId);
         }
         // Seguir escuchando para más pedidos
         if (voiceActive) setTimeout(_voiceListen, 600);
@@ -1761,6 +1770,7 @@ function _voiceListen() {
       if (!drink) { processNext(idx + 1); return; }
       const hasOptions = drink.brands || drink.regions || drink.steps;
       if (hasOptions) {
+        scrollToDrink(drinkId);
         let remaining = qty;
         function openNext() {
           if (remaining <= 0) { processNext(idx + 1); return; }
@@ -1770,6 +1780,7 @@ function _voiceListen() {
             if (!state.brandSelections[drinkId]) state.brandSelections[drinkId] = [];
             state.brandSelections[drinkId].push(selection);
             renderDrinks();
+            scrollToDrink(drinkId);
             openNext();
           });
           // Seguir escuchando dentro del modal
