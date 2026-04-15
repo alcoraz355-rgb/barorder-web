@@ -78,18 +78,18 @@
   <!-- ── PANTALLA: Pidiendo bebidas ────────────────────────────── -->
   <div id="screen-order" class="screen">
     <div class="order-sticky-header">
-      <div class="top-bar">
-        <div style="display:flex;flex-direction:column;align-items:flex-start;gap:2px">
-          <button id="btn-order-volver" style="background:transparent;border:none;color:#D4A843;font-size:17px;font-weight:600;cursor:pointer;padding:0;line-height:1">‹  Atrás</button>
-          <span id="order-nombre-label" style="color:#fff;font-size:13px;font-weight:700;line-height:1.2"></span>
+      <div class="top-bar" style="padding:4px 12px 2px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <button id="btn-order-volver" style="background:transparent;border:none;color:#D4A843;font-size:15px;font-weight:600;cursor:pointer;padding:0;line-height:1">‹</button>
+          <span id="order-nombre-label" style="color:#fff;font-size:16px;font-weight:800;line-height:1"></span>
         </div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
-          <div class="mesa-badge" id="order-mesa-code">—</div>
-          <div id="order-pagador-badge" style="color:#9090FF;font-size:16px;font-weight:900;display:none"></div>
-          <div class="ronda-badge" id="order-ronda-badge-top">🔄 Ronda 1</div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <span id="order-grupo-label" style="color:#999;font-size:12px;font-weight:600"></span>
+          <div class="ronda-badge" id="order-ronda-badge-top" style="font-size:11px;padding:2px 8px">🔄 Ronda 1</div>
+          <div id="order-pagador-badge" style="color:#9090FF;font-size:13px;font-weight:900;display:none"></div>
         </div>
       </div>
-      <div class="search-bar">
+      <div class="search-bar" style="padding:2px 12px">
         <input type="text" id="search-input" placeholder="🔍  Buscar bebida..." autocomplete="off" maxlength="40" />
       </div>
       <div class="category-scroll" id="cat-filter"></div>

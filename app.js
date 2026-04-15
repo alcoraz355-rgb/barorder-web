@@ -833,9 +833,10 @@ async function showResumenScreen() {
 
 // ─── Pantalla de pedido ───────────────────────────────────────────────────────
 function renderOrderScreen() {
-  $('order-mesa-code').textContent = state.mesa.nombre || state.mesa.codigo;
   const nombreLabel = $('order-nombre-label');
   if (nombreLabel && state.nombre) nombreLabel.textContent = 'Pedido de ' + state.nombre;
+  const grupoLabel = $('order-grupo-label');
+  if (grupoLabel) grupoLabel.textContent = 'Grupo: ' + (state.mesa.nombre || state.mesa.codigo);
   renderCategories();
   renderDrinks();
 
