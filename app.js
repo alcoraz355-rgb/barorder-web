@@ -1663,32 +1663,79 @@ const VOICE_ALIASES = {
   n8: ['zumo naranja','zumo de naranja','zumo'], n9: ['cafe','café'], n10: ['te','té','infusion'],
 };
 
+function _findInList(text, list) {
+  let best = null, bestLen = 0;
+  for (const item of list) {
+    const n = normVoice(item);
+    if (text.includes(n) && n.length > bestLen) { best = item; bestLen = n.length; }
+  }
+  return best;
+}
+
 function parseVoiceWeb(transcript) {
   const text = normVoice(transcript);
-  const results = {};
-  const segments = text.split(/\s+(?:y|e|mas|más|también|tambien|con)\s+/);
+  const results = [];
+  const segments = text.split(/\s+(?:y|e|mas|más|también|tambien)\s+/);
   const drinks = getAllDrinks();
+
   for (const seg of segments) {
     const tokens = seg.trim().split(/\s+/);
     let qty = 1, search = seg.trim();
     if (VOICE_NUM_WORDS[tokens[0]]) { qty = VOICE_NUM_WORDS[tokens[0]]; search = tokens.slice(1).join(' '); }
     if (/^\d+/.test(tokens[0])) { const n = parseInt(tokens[0], 10); if (n > 0 && n <= 10) { qty = n; search = tokens.slice(1).join(' '); } }
     if (!search) continue;
-    let matched = null, bestLen = 0;
+
+    // Buscar bebida por alias o nombre
+    let matchedId = null, bestLen = 0;
     for (const [drinkId, aliasList] of Object.entries(VOICE_ALIASES)) {
       for (const alias of aliasList) {
-        if (search.includes(normVoice(alias)) && normVoice(alias).length > bestLen) { matched = drinkId; bestLen = normVoice(alias).length; }
+        const an = normVoice(alias);
+        if (search.includes(an) && an.length > bestLen) { matchedId = drinkId; bestLen = an.length; }
       }
     }
-    if (!matched) {
+    if (!matchedId) {
       for (const d of drinks) {
         const dn = normVoice(d.name);
-        if (search.includes(dn) && dn.length > bestLen) { matched = d.id; bestLen = dn.length; }
+        if (search.includes(dn) && dn.length > bestLen) { matchedId = d.id; bestLen = dn.length; }
       }
     }
-    if (matched) results[matched] = (results[matched] || 0) + qty;
+    if (!matchedId) continue;
+
+    const drink = drinks.find((d) => d.id === matchedId);
+    let selection = null;
+
+    if (drink) {
+      const sep = drink.sep || ' ';
+      // Bebidas con brands + mixers (cerveza, spirits)
+      if (drink.brands && drink.mixers) {
+        const brand = _findInList(search, drink.brands);
+        const mixer = _findInList(search, drink.mixers);
+        if (brand && mixer) selection = brand + sep + mixer;
+        else if (brand) selection = brand;
+        else if (mixer) selection = mixer;
+      }
+      // Vinos con regions + agings
+      else if (drink.regions && drink.agings) {
+        const region = _findInList(search, drink.regions);
+        const aging = _findInList(search, drink.agings);
+        if (region && aging) selection = region + ' ' + aging;
+        else if (region) selection = region;
+        else if (aging) selection = aging;
+      }
+      // Bebidas con steps genéricos (café, etc.)
+      else if (drink.steps) {
+        const parts = [];
+        for (const step of drink.steps) {
+          const match = _findInList(search, step.options);
+          if (match) parts.push(match);
+        }
+        if (parts.length) selection = parts.join(' ');
+      }
+    }
+
+    results.push({ drinkId: matchedId, qty, selection });
   }
-  return Object.entries(results).map(([drinkId, qty]) => ({ drinkId, qty }));
+  return results;
 }
 
 function startVoiceWeb() {
@@ -1766,7 +1813,6 @@ function stopVoiceAndProcess() {
 
   if (bubble) bubble.textContent = '🎤 Procesando...';
 
-  // Procesar todo el texto
   const matches = parseVoiceWeb(fullText);
   if (!matches.length) {
     if (bubble) bubble.textContent = '🎤 "' + fullText + '" — no encontrado';
@@ -1775,54 +1821,35 @@ function stopVoiceAndProcess() {
   }
 
   const drinks = getAllDrinks();
-  let directAdded = [];
+  let added = [];
 
-  function scrollToDrink(drinkId) {
-    setTimeout(() => {
-      const el = document.getElementById('card-' + drinkId);
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    }, 100);
-  }
-
-  function processNext(idx) {
-    if (idx >= matches.length) {
-      if (directAdded.length) {
-        renderDrinks();
-        if (bubble) bubble.textContent = '🎤 ' + directAdded.join(', ');
-        scrollToDrink(matches[matches.length - 1].drinkId);
-        setTimeout(() => { if (bubble) bubble.style.display = 'none'; }, 4000);
-      }
-      return;
-    }
-    const { drinkId, qty } = matches[idx];
+  // Añadir todo directamente sin abrir modals
+  for (const { drinkId, qty, selection } of matches) {
     const drink = drinks.find((x) => x.id === drinkId);
-    if (!drink) { processNext(idx + 1); return; }
-    const hasOptions = drink.brands || drink.regions || drink.steps;
-    if (hasOptions) {
-      scrollToDrink(drinkId);
-      let remaining = qty;
-      function openNext() {
-        if (remaining <= 0) { processNext(idx + 1); return; }
-        remaining--;
-        openBrandModal(drink, (selection) => {
-          state.quantities[drinkId] = (state.quantities[drinkId] || 0) + 1;
-          if (!state.brandSelections[drinkId]) state.brandSelections[drinkId] = [];
-          state.brandSelections[drinkId].push(selection);
-          renderDrinks();
-          scrollToDrink(drinkId);
-          openNext();
-        });
+    if (!drink) continue;
+    for (let i = 0; i < qty; i++) {
+      state.quantities[drinkId] = (state.quantities[drinkId] || 0) + 1;
+      if (selection) {
+        if (!state.brandSelections[drinkId]) state.brandSelections[drinkId] = [];
+        state.brandSelections[drinkId].push(selection);
       }
-      openNext();
-    } else {
-      for (let i = 0; i < qty; i++) {
-        state.quantities[drinkId] = (state.quantities[drinkId] || 0) + 1;
-      }
-      directAdded.push((drink.emoji || '') + ' ' + drink.name + (qty > 1 ? ' ×' + qty : ''));
-      processNext(idx + 1);
     }
+    let label = (drink.emoji || '') + ' ' + drink.name;
+    if (selection) label += ' ' + selection;
+    if (qty > 1) label += ' ×' + qty;
+    added.push(label);
   }
-  processNext(0);
+
+  renderDrinks();
+  if (bubble) bubble.textContent = '🎤 ' + added.join(', ');
+
+  // Scroll a la última bebida añadida
+  const lastId = matches[matches.length - 1].drinkId;
+  setTimeout(() => {
+    const el = document.getElementById('card-' + lastId);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 100);
+  setTimeout(() => { if (bubble) bubble.style.display = 'none'; }, 4000);
 }
 
 function stopVoiceWeb() {
