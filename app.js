@@ -1710,17 +1710,44 @@ function initVoiceFab() {
         return;
       }
       const drinks = getAllDrinks();
-      matches.forEach(({ drinkId, qty }) => {
-        for (let i = 0; i < qty; i++) {
-          state.quantities[drinkId] = (state.quantities[drinkId] || 0) + 1;
+      // Procesar cada match: si tiene opciones abre modal, si no añade directo
+      let directAdded = [];
+      function processNext(idx) {
+        if (idx >= matches.length) {
+          if (directAdded.length) {
+            renderDrinks();
+            alert('🎤 Añadido:\n' + directAdded.join('\n'));
+          }
+          return;
         }
-      });
-      renderDrinks();
-      const nombres = matches.map(({ drinkId, qty }) => {
-        const d = drinks.find((x) => x.id === drinkId);
-        return (d?.emoji || '') + ' ' + (d?.name || drinkId) + (qty > 1 ? ' ×' + qty : '');
-      }).join('\n');
-      alert('🎤 Añadido:\n' + nombres);
+        const { drinkId, qty } = matches[idx];
+        const drink = drinks.find((x) => x.id === drinkId);
+        if (!drink) { processNext(idx + 1); return; }
+        const hasOptions = drink.brands || drink.regions || drink.steps;
+        if (hasOptions) {
+          // Abrir modal de selección para cada unidad
+          let remaining = qty;
+          function openNext() {
+            if (remaining <= 0) { processNext(idx + 1); return; }
+            remaining--;
+            openBrandModal(drink, (selection) => {
+              state.quantities[drinkId] = (state.quantities[drinkId] || 0) + 1;
+              if (!state.brandSelections[drinkId]) state.brandSelections[drinkId] = [];
+              state.brandSelections[drinkId].push(selection);
+              renderDrinks();
+              openNext();
+            });
+          }
+          openNext();
+        } else {
+          for (let i = 0; i < qty; i++) {
+            state.quantities[drinkId] = (state.quantities[drinkId] || 0) + 1;
+          }
+          directAdded.push((drink.emoji || '') + ' ' + drink.name + (qty > 1 ? ' ×' + qty : ''));
+          processNext(idx + 1);
+        }
+      }
+      processNext(0);
     };
     voiceRecog.onerror = () => { stopVoiceWeb(); };
     voiceRecog.start();

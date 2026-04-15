@@ -710,15 +710,15 @@ button {
 /* ── Voice FAB flotante ──────────────────────────────────────── */
 .voice-fab {
   position: fixed;
-  bottom: 100px; right: 16px;
+  bottom: 6px; right: 76px;
   width: 54px; height: 54px;
   border-radius: 50%;
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: #fff;
+  border: 1px solid #ccc;
   font-size: 24px;
   display: none; align-items: center; justify-content: center;
   z-index: 50;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.5);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
   -webkit-tap-highlight-color: transparent;
   cursor: pointer;
 }
@@ -733,7 +733,7 @@ button {
 }
 .voice-bubble {
   position: fixed;
-  bottom: 162px; right: 12px;
+  bottom: 68px; right: 70px;
   background: #1A1A1A;
   border: 1px solid #444;
   border-radius: 12px;
