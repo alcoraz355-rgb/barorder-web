@@ -1896,19 +1896,14 @@ function _voiceStartSession() {
 
   voiceRecog.onresult = (e) => {
     const parts = [];
-    let interim = '';
     for (let i = 0; i < e.results.length; i++) {
-      if (e.results[i].isFinal) {
-        parts.push(e.results[i][0].transcript.trim());
-      } else {
-        interim = e.results[i][0].transcript.trim();
-      }
+      const t = e.results[i][0].transcript.trim();
+      if (t) parts.push(t);
     }
-    // Cada silencio = separador " y " para ayudar al parser a dividir bebidas
-    const sessionFinal = parts.join(' y ');
-    _voiceFullText = baseText ? (baseText + ' y ' + sessionFinal) : sessionFinal;
-    const display = interim ? (_voiceFullText + ' ' + interim) : _voiceFullText;
-    if (bubble && display) bubble.textContent = '🎤 "' + display.trim() + '"';
+    // Cada resultado (separado por silencio) se une con " y "
+    const sessionText = parts.join(' y ');
+    _voiceFullText = baseText ? (baseText + ' y ' + sessionText) : sessionText;
+    if (bubble && _voiceFullText) bubble.textContent = '🎤 "' + _voiceFullText + '"';
   };
 
   voiceRecog.onend = () => {

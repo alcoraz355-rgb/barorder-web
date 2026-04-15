@@ -60,7 +60,7 @@ html, body {
 .logo-title span { font-size: 22px; }
 .logo-title h1 { color: var(--gold); font-size: 22px; font-weight: 900; letter-spacing: 1px; }
 .search-bar { padding: 4px 12px; background: var(--bg); }
-.search-bar input { width: 100%; background: #1A1A1A; border: 1px solid #333; border-radius: 22px; padding: 7px 14px; color: #fff; font-size: 14px; outline: none; box-sizing: border-box; }
+.search-bar input { width: 100%; background: #1A1A1A; border: 1px solid #333; border-radius: 22px; padding: 5px 14px; color: #fff; font-size: 14px; outline: none; box-sizing: border-box; }
 .search-bar input::placeholder { color: #666; }
 .mesa-badge {
   background: var(--surface);
