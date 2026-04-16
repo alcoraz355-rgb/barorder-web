@@ -200,7 +200,7 @@ function showScreen(name) {
   // Voz: solo visible en pantalla de pedidos
   const voiceBubble = $('voice-bubble');
   if (voiceBubble) voiceBubble.style.display = 'none';
-  if (name !== 'order' && _voz.active) { _voz.active = false; try { _voz.recog?.stop(); } catch(_){} _voz.recog = null; }
+  if (name !== 'order' && _voz.active) { _voz.active = false; try { _voz.recorder?.stop(); } catch(_){} _voz.stream?.getTracks().forEach(t=>t.stop()); }
   // Chat global: ocultar en order (tiene su propio botón integrado)
   const chatFab = $('chat-fab');
   if (chatFab) chatFab.style.display = (name === 'order') ? 'none' : '';
@@ -1040,7 +1040,7 @@ function buildPedidos() {
 
 // ─── Confirmar pedido ─────────────────────────────────────────────────────────
 async function handleConfirmar() {
-  if (_voz.active) { _voz.active = false; try { _voz.recog?.stop(); } catch(_){} _voz.recog = null; }
+  if (_voz.active) { _voz.active = false; try { _voz.recorder?.stop(); } catch(_){} _voz.stream?.getTracks().forEach(t=>t.stop()); }
   const pedidosSeleccionados = buildPedidos();
   if (!pedidosSeleccionados.length) {
     alert('Selecciona al menos una bebida');
@@ -1639,242 +1639,147 @@ function loadSession(mesaCodigo) {
   } catch { return null; }
 }
 
-// ─── Voz (Web Speech API) — versión simple ────────────────────────────────────
-const VoiceRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-let _voz = { recog: null, active: false, chunks: [], display: '' };
+// ─── Voz (Whisper + GPT-4o-mini) ──────────────────────────────────────────────
+let _voz = { active: false, recorder: null, audioChunks: [], stream: null };
 
-function _norm(s) { return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim(); }
-
-const VOZ_NUMS = {un:1,una:1,uno:1,dos:2,tres:3,cuatro:4,cinco:5,seis:6,siete:7,ocho:8};
-
-// Todos los alias: id → [nombres alternativos normalizados]
-const VOZ_ALIAS = {};
-(function(){
-  const raw = {
-    c1:'cerveza,birra,caña,cana,canita,terci,botellin,birrita',
-    c2:'cerveza sin,sin alcohol,cerveza cero',c3:'clara,clarita',c4:'jarra,jarrita',
-    c5:'cero cero limon',c6:'ipa',c7:'tostada',c8:'trigo',c9:'radler',
-    k1:'mojito',k2:'gin tonic,gintonic,yintonic,jin tonic',k3:'daiquiri,daikiri',
-    k4:'margarita',k5:'pina colada,piña colada',k6:'aperol,spritz,aperol spritz',
-    k7:'negroni',k8:'cuba libre,cubata,cubalibre',k9:'tinto de verano,tinto verano',
-    k10:'rebujito',k11:'bloody mary',k13:'caipirinha',k16:'old fashioned',
-    k17:'whisky sour',
-    s1:'whisky,whiskey,guisqui,wiski,wisqui,güisqui',s2:'ron,rum',
-    s3:'ginebra',s4:'vodka,bodka',s5:'tequila,tekila',
-    s6:'brandy,coñac,cognac,brandi',s7:'chupito,shot',
-    v1:'vino tinto,tinto,vino',v2:'vino blanco,blanco',v3:'rosado,vino rosado',
-    v4:'sangria',v5:'cava,champan',v6:'vermut,vermuth,vermu',
-    v7:'fino',v8:'manzanilla',v9:'lambrusco',v10:'prosecco',
-    l1:'baileys,beilis',l2:'jagermeister,jagger',l3:'licor cafe',
-    l4:'pacharan,patxaran',l5:'orujo',l6:'amaretto',
-    n1:'agua,agua mineral',n13:'agua con gas',
-    n2:'coca cola,cocacola,coca',n3:'cola light,coca light',
-    n14:'cola zero,coca zero',n4:'fanta naranja,fanta,naranjada',
-    n5:'fanta limon',n12:'tonica,agua tonica',
-    n7:'limonada',n8:'redbull,red bull,monster,energetica',
-    n9:'zumo naranja,zumo de naranja,zumo',n10:'cafe,cafecito,cortado',
-    n11:'te,infusion',
-    a1:'patatas,patata,fritas,papas',a2:'olivas,aceitunas,aceituna',
-    a3:'pepinillos,pepinillo',a4:'revuelto',a5:'gambas,gamba',
-    a6:'calamares,calamar',a7:'tostadas,tosta',a8:'tapas,tapa',
-  };
-  for (const [id,v] of Object.entries(raw)) VOZ_ALIAS[id] = v.split(',').map(s=>_norm(s));
-})();
-
-// Buscar una bebida en un trozo de texto. Devuelve {id, consumed} o null
-function _vozFindDrink(text, drinks) {
-  let bestId = null, bestLen = 0;
-  // 1) Alias (priorizamos frases más largas)
-  for (const [id, aliases] of Object.entries(VOZ_ALIAS)) {
-    for (const a of aliases) {
-      if (text.includes(a) && a.length > bestLen) { bestId = id; bestLen = a.length; }
-    }
-  }
-  // 2) Nombres del catálogo
-  for (const d of drinks) {
-    const n = _norm(d.name);
-    if (text.includes(n) && n.length > bestLen) { bestId = d.id; bestLen = n.length; }
-  }
-  // 3) Parcial: si alguna palabra del texto (>=4 letras) empieza como un alias/nombre
-  if (!bestId) {
-    const words = text.split(/\s+/);
-    for (const w of words) {
-      if (w.length < 4) continue;
-      for (const [id, aliases] of Object.entries(VOZ_ALIAS)) {
-        for (const a of aliases) {
-          if ((a.startsWith(w) || w.startsWith(a)) && a.length > bestLen) { bestId = id; bestLen = a.length; }
-        }
-      }
-      if (!bestId) {
-        for (const d of drinks) {
-          const n = _norm(d.name);
-          if ((n.startsWith(w) || w.startsWith(n)) && n.length > bestLen) { bestId = d.id; bestLen = n.length; }
-        }
-      }
-    }
-  }
-  return bestId;
-}
-
-// Buscar marca/mixer/región en texto
-function _vozFindOpt(text, options) {
-  let best = null, bestLen = 0;
-  for (const opt of options) {
-    const n = _norm(opt);
-    if (text.includes(n) && n.length > bestLen) { best = opt; bestLen = n.length; }
-    // Parcial
-    const words = text.split(/\s+/);
-    for (const w of words) {
-      if (w.length >= 4 && (n.startsWith(w) || w.startsWith(n)) && n.length > bestLen) { best = opt; bestLen = n.length; }
-    }
-  }
-  return best;
-}
-
-// Procesar cada chunk (frase entre silencios) como un pedido independiente
-function parseVoiceChunks(chunks) {
+function _buildCatalogPrompt() {
   const drinks = getAllDrinks();
-  const results = [];
-
-  for (let raw of chunks) {
-    // Limpiar: quitar artículos, normalizar
-    let chunk = _norm(raw).replace(/\b(un|una|uno|el|la|los|las|del|de|al|para|por|dame|ponme|quiero|pon|me|pones)\b/g,' ').replace(/\s+/g,' ').trim();
-    if (!chunk) continue;
-
-    // También subdividir por "y" / "e" dentro del chunk
-    const subchunks = chunk.split(/\s+(?:y|e)\s+/).filter(c => c.trim());
-
-    for (let sub of subchunks) {
-      sub = sub.trim();
-      if (!sub) continue;
-
-      // Extraer cantidad
-      let qty = 1;
-      const first = sub.split(/\s+/)[0];
-      if (VOZ_NUMS[first]) { qty = VOZ_NUMS[first]; sub = sub.replace(/^\S+\s*/, ''); }
-      else if (/^\d+$/.test(first)) { qty = Math.min(parseInt(first,10),10); sub = sub.replace(/^\S+\s*/, ''); }
-
-      const drinkId = _vozFindDrink(sub, drinks);
-      if (!drinkId) continue;
-
-      const drink = drinks.find(d => d.id === drinkId);
-      let selection = null;
-
-      if (drink) {
-        const sep = drink.sep || ' ';
-        if (drink.brands && drink.mixers) {
-          const brand = _vozFindOpt(sub, drink.brands);
-          const mixer = _vozFindOpt(sub, drink.mixers);
-          if (brand && mixer) selection = brand + sep + mixer;
-          else if (brand) selection = brand;
-          else if (mixer) selection = mixer;
-        } else if (drink.regions && drink.agings) {
-          const region = _vozFindOpt(sub, drink.regions);
-          const aging = _vozFindOpt(sub, drink.agings);
-          if (region && aging) selection = region + ' ' + aging;
-          else if (region) selection = region;
-          else if (aging) selection = aging;
-        } else if (drink.steps) {
-          const parts = [];
-          for (const step of drink.steps) { const m = _vozFindOpt(sub, step.options); if (m) parts.push(m); }
-          if (parts.length) selection = parts.join(' ');
-        }
-      }
-      results.push({ drinkId, qty, selection });
-    }
-  }
-  return results;
+  const lines = drinks.map(d => {
+    let s = `${d.id}: ${d.name}`;
+    if (d.brands) s += ` [marcas: ${d.brands.join(', ')}]`;
+    if (d.mixers) s += ` [tamaño/mixer: ${d.mixers.join(', ')}]`;
+    if (d.regions) s += ` [regiones: ${d.regions.join(', ')}]`;
+    if (d.agings) s += ` [crianza: ${d.agings.join(', ')}]`;
+    if (d.sep) s += ` (separador: "${d.sep}")`;
+    return s;
+  });
+  return lines.join('\n');
 }
 
-// ── Controles de voz ──────────────────────────────────────────
-function startVoiceWeb() {
-  if (!VoiceRecognition) return;
+async function startVoiceWeb() {
   const fab = $('voice-fab'), bubble = $('voice-bubble');
-  _voz.active = true;
-  _voz.chunks = [];
-  _voz.display = '';
-  fab.classList.add('listening');
-  fab.textContent = '⏹';
-  if (bubble) { bubble.style.display = 'block'; bubble.textContent = '🎤 Habla...'; }
-
-  _voz.recog = new VoiceRecognition();
-  _voz.recog.lang = 'es-ES';
-  _voz.recog.continuous = true;
-  _voz.recog.interimResults = true;
-
-  _voz.recog.onresult = (e) => {
-    // Cada e.results[i] es una frase separada por silencio
-    const chunks = [];
-    let interim = '';
-    for (let i = 0; i < e.results.length; i++) {
-      const t = e.results[i][0].transcript.trim();
-      if (!t) continue;
-      if (e.results[i].isFinal) {
-        chunks.push(t);
-      } else {
-        interim = t;
-      }
-    }
-    _voz.chunks = chunks;
-    _voz.display = chunks.concat(interim ? [interim] : []).join(' | ');
-    if (bubble) bubble.textContent = '🎤 "' + _voz.display + '"';
-  };
-  _voz.recog.onend = () => { if (_voz.active) try { _voz.recog.start(); } catch(_){} };
-  _voz.recog.onerror = () => { if (_voz.active) try { _voz.recog.start(); } catch(_){} };
-  _voz.recog.start();
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    _voz.stream = stream;
+    _voz.audioChunks = [];
+    _voz.recorder = new MediaRecorder(stream);
+    _voz.recorder.ondataavailable = (e) => { if (e.data.size > 0) _voz.audioChunks.push(e.data); };
+    _voz.recorder.start();
+    _voz.active = true;
+    fab.classList.add('listening');
+    fab.textContent = '⏹';
+    if (bubble) { bubble.style.display = 'block'; bubble.textContent = '🎤 Grabando... pulsa ⏹ para enviar'; }
+  } catch (e) {
+    if (bubble) { bubble.style.display = 'block'; bubble.textContent = '⚠️ No se pudo acceder al micrófono'; }
+    setTimeout(() => { if (bubble) bubble.style.display = 'none'; }, 3000);
+  }
 }
 
 function stopVoiceAndProcess() {
-  if (!_voz.active) return;
-  _voz.active = false;
-  try { _voz.recog?.stop(); } catch(_){}
-  _voz.recog = null;
-
+  if (!_voz.active || !_voz.recorder) return;
   const fab = $('voice-fab'), bubble = $('voice-bubble');
   fab.classList.remove('listening');
   fab.textContent = '🎤';
+  _voz.active = false;
 
-  // Usar chunks (separados por silencio) o display como fallback
-  const chunks = _voz.chunks.length ? _voz.chunks : (_voz.display ? _voz.display.split(' | ') : []);
-  const fullText = chunks.join(' | ');
-  if (!fullText.trim()) { if (bubble) bubble.style.display = 'none'; return; }
+  _voz.recorder.onstop = async () => {
+    // Liberar micrófono
+    _voz.stream?.getTracks().forEach(t => t.stop());
+    _voz.stream = null;
 
-  if (bubble) bubble.textContent = '🎤 Procesando...';
-  const matches = parseVoiceChunks(chunks);
+    const audioBlob = new Blob(_voz.audioChunks, { type: 'audio/webm' });
+    if (audioBlob.size < 1000) { if (bubble) bubble.style.display = 'none'; return; }
 
-  if (!matches.length) {
-    if (bubble) bubble.textContent = '🎤 "' + fullText + '" — no encontrado';
-    setTimeout(() => { if (bubble) bubble.style.display = 'none'; }, 4000);
-    return;
-  }
+    if (bubble) bubble.textContent = '🎤 Transcribiendo...';
 
-  const drinks = getAllDrinks();
-  const added = [];
-  for (const { drinkId, qty, selection } of matches) {
-    const drink = drinks.find(x => x.id === drinkId);
-    if (!drink) continue;
-    for (let i = 0; i < qty; i++) {
-      state.quantities[drinkId] = (state.quantities[drinkId] || 0) + 1;
-      if (selection) {
-        if (!state.brandSelections[drinkId]) state.brandSelections[drinkId] = [];
-        state.brandSelections[drinkId].push(selection);
+    try {
+      // Enviar audio + catálogo a la Edge Function (proxy seguro)
+      const catalog = _buildCatalogPrompt();
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'audio.webm');
+      formData.append('catalog', catalog);
+
+      const res = await fetch(SUPABASE_URL + '/functions/v1/voice-order', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY },
+        body: formData,
+      });
+      if (!res.ok) throw new Error('Error: ' + res.status);
+      const data = await res.json();
+
+      if (data.error) throw new Error(data.error);
+
+      const transcript = data.transcript || '';
+      const pedidos = data.pedidos || [];
+
+      if (!transcript) {
+        if (bubble) bubble.textContent = '🎤 No se ha detectado voz';
+        setTimeout(() => { if (bubble) bubble.style.display = 'none'; }, 3000);
+        return;
       }
+
+      if (bubble) bubble.textContent = '🎤 "' + transcript + '"';
+
+      if (!pedidos.length) {
+        if (bubble) bubble.textContent = '🎤 "' + transcript + '" — GPT no devolvió bebidas';
+        setTimeout(() => { if (bubble) bubble.style.display = 'none'; }, 5000);
+        return;
+      }
+
+      // 3) Añadir bebidas al pedido — matching flexible de IDs
+      const drinks = getAllDrinks();
+      const added = [];
+      const notFound = [];
+      for (const p of pedidos) {
+        // Buscar por ID exacto, o por nombre si GPT devolvió nombre en vez de ID
+        let drink = drinks.find(d => d.id === p.id);
+        if (!drink && p.id) {
+          const pid = p.id.toLowerCase().trim();
+          drink = drinks.find(d => d.id === pid);
+        }
+        if (!drink && p.name) {
+          const pname = p.name.toLowerCase().trim();
+          drink = drinks.find(d => d.name.toLowerCase() === pname);
+          if (!drink) drink = drinks.find(d => d.name.toLowerCase().includes(pname) || pname.includes(d.name.toLowerCase()));
+        }
+        if (!drink) { notFound.push(p.id || p.name || '?'); continue; }
+
+        const qty = Math.min(p.qty || 1, 10);
+        for (let i = 0; i < qty; i++) {
+          state.quantities[drink.id] = (state.quantities[drink.id] || 0) + 1;
+          if (p.selection) {
+            if (!state.brandSelections[drink.id]) state.brandSelections[drink.id] = [];
+            state.brandSelections[drink.id].push(p.selection);
+          }
+        }
+        let label = (drink.emoji || '') + ' ' + drink.name;
+        if (p.selection) label += ' ' + p.selection;
+        if (qty > 1) label += ' ×' + qty;
+        added.push(label);
+      }
+
+      renderDrinks();
+      let msg = added.length ? '🎤 ' + added.join(', ') : '🎤 No se pudo añadir';
+      if (notFound.length) msg += ' (no encontrado: ' + notFound.join(', ') + ')';
+      if (bubble) bubble.textContent = msg;
+      if (added.length) {
+        const lastDrink = drinks.find(d => added.length && state.quantities[d.id] > 0);
+        if (lastDrink) setTimeout(() => { const el = document.getElementById('card-' + lastDrink.id); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 150);
+      }
+      setTimeout(() => { if (bubble) bubble.style.display = 'none'; }, 5000);
+
+    } catch (err) {
+      if (bubble) bubble.textContent = '⚠️ Error: ' + (err.message || 'sin conexión');
+      setTimeout(() => { if (bubble) bubble.style.display = 'none'; }, 4000);
     }
-    let label = (drink.emoji||'') + ' ' + drink.name;
-    if (selection) label += ' ' + selection;
-    if (qty > 1) label += ' ×' + qty;
-    added.push(label);
-  }
-  renderDrinks();
-  if (bubble) bubble.textContent = '🎤 ' + added.join(', ');
-  const lastId = matches[matches.length-1].drinkId;
-  setTimeout(() => { const el = document.getElementById('card-'+lastId); if (el) el.scrollIntoView({behavior:'smooth',block:'center'}); }, 150);
-  setTimeout(() => { if (bubble) bubble.style.display = 'none'; }, 4000);
+  };
+
+  _voz.recorder.stop();
 }
 
 function initVoiceFab() {
   const fab = $('voice-fab');
-  if (!fab || !VoiceRecognition) { if (fab) fab.style.display = 'none'; return; }
+  if (!fab) return;
   fab.style.display = 'flex';
   fab.onclick = () => { if (_voz.active) stopVoiceAndProcess(); else startVoiceWeb(); };
   const orderChatFab = $('order-chat-fab');
