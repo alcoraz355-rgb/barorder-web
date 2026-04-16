@@ -1320,6 +1320,25 @@ function subscribeRealtime() {
     .on('broadcast', { event: 'kick' }, (payload) => {
       if (payload.payload?.miembroId === state.miembro?.id) _mostrarDespedida();
     })
+    .on('broadcast', { event: 'qr_comanda' }, (payload) => {
+      if (payload.payload?.miembroId !== state.miembro?.id) return;
+      const url = payload.payload?.url || '';
+      // Mostrar QR de comanda al amigo
+      const overlay = document.createElement('div');
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center';
+      overlay.innerHTML = `
+        <div style="background:#fff;border-radius:20px;padding:28px;text-align:center;max-width:320px">
+          <div style="font-size:16px;font-weight:700;color:#000;margin-bottom:12px">📷 Muestra este QR al camarero</div>
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(url)}" style="width:240px;height:240px;border-radius:8px" />
+          <div style="margin-top:16px">
+            <button id="qr-amigo-close" style="background:#CC3333;color:#fff;border:none;border-radius:10px;padding:12px 32px;font-size:15px;font-weight:700;cursor:pointer">✕ Cerrar</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+      overlay.querySelector('#qr-amigo-close').onclick = () => overlay.remove();
+      overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+    })
     .on('broadcast', { event: 'pedido_modificado_admin' }, (payload) => {
       if (payload.payload?.miembroId !== state.miembro?.id) return;
       const rondaNum = payload.payload?.ronda || (state.mesa.ronda ?? 1);
@@ -1364,9 +1383,13 @@ function subscribeRealtime() {
         state.brandSelections = {};
       }
 
-      // Actualizar catálogo si cambió
+      // Actualizar catálogo si cambió y refrescar pantalla de pedidos
       if (state.mesa.custom_drinks) {
+        const changed = JSON.stringify(state.customDrinks) !== JSON.stringify(state.mesa.custom_drinks);
         state.customDrinks = state.mesa.custom_drinks;
+        if (changed && document.querySelector('.screen.active')?.id === 'screen-order') {
+          renderDrinks();
+        }
       }
 
       // Notificar si el admin acaba de bloquear la mesa
@@ -1722,11 +1745,15 @@ function stopVoiceAndProcess() {
       formData.append('audio', audioBlob, 'audio.webm');
       formData.append('catalog', catalog);
 
+      const controller = new AbortController();
+      const voiceTimeout = setTimeout(() => controller.abort(), 15000);
       const res = await fetch(SUPABASE_URL + '/functions/v1/voice-order', {
         method: 'POST',
         headers: { 'Authorization': 'Bearer ' + SUPABASE_ANON_KEY },
         body: formData,
+        signal: controller.signal,
       });
+      clearTimeout(voiceTimeout);
       if (!res.ok) throw new Error('Error: ' + res.status);
       const data = await res.json();
 
@@ -1792,7 +1819,7 @@ function stopVoiceAndProcess() {
       setTimeout(() => { if (bubble) bubble.style.display = 'none'; }, 5000);
 
     } catch (err) {
-      if (bubble) bubble.textContent = '⚠️ Error: ' + (err.message || 'sin conexión');
+      if (bubble) bubble.textContent = err.name === 'AbortError' ? '⚠️ Timeout — inténtalo de nuevo' : '⚠️ Error: ' + (err.message || 'sin conexión');
       setTimeout(() => { if (bubble) bubble.style.display = 'none'; }, 4000);
     }
   };
