@@ -834,7 +834,7 @@ async function showResumenScreen() {
 // ─── Pantalla de pedido ───────────────────────────────────────────────────────
 function renderOrderScreen() {
   const nombreLabel = $('order-nombre-label');
-  if (nombreLabel && state.nombre) nombreLabel.textContent = 'Pedido de ' + state.nombre;
+  if (nombreLabel && state.nombre) nombreLabel.innerHTML = 'Pedido de <span style="color:#FF3333;text-transform:uppercase">' + state.nombre + '</span>';
   const grupoLabel = $('order-grupo-label');
   if (grupoLabel) grupoLabel.textContent = 'Grupo: ' + (state.mesa.nombre || state.mesa.codigo);
   renderCategories();

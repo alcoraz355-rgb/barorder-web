@@ -770,15 +770,17 @@ button {
 }
 .voice-bubble {
   position: fixed;
-  bottom: 160px; left: 50%;
+  bottom: 100px; left: 50%;
   transform: translateX(-50%);
   background: #1A1A1A;
-  border: 1px solid #444;
+  border: 1px solid #D4A843;
   border-radius: 12px;
-  padding: 7px 12px;
-  max-width: 260px;
-  color: #CCC;
-  font-size: 13px;
+  padding: 10px 16px;
+  max-width: 320px;
+  width: 90%;
+  color: #fff;
+  font-size: 14px;
+  text-align: center;
   font-style: italic;
   z-index: 201;
   text-align: center;
