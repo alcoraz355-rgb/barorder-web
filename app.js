@@ -1308,8 +1308,35 @@ async function renderReparto() {
 // ─── Realtime ─────────────────────────────────────────────────────────────────
 function subscribePresence() {}
 
+// Polling QR comanda
+let _qrPollTimer = null;
+function startQrPoll() {
+  if (_qrPollTimer) return;
+  _qrPollTimer = setInterval(async () => {
+    if (!state.mesa?.id || !state.miembro?.id) return;
+    try {
+      const { data } = await sb.from('mesas').select('qr_target').eq('id', state.mesa.id).single();
+      if (!data?.qr_target || document.getElementById('qr-amigo-overlay')) return;
+      const qr = typeof data.qr_target === 'string' ? JSON.parse(data.qr_target) : data.qr_target;
+      if (qr.miembroId !== state.miembro.id) return;
+      const url = qr.url || '';
+      const overlay = document.createElement('div');
+      overlay.id = 'qr-amigo-overlay';
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center';
+      overlay.innerHTML = '<div style="background:#fff;border-radius:20px;padding:28px;text-align:center;max-width:320px">' +
+        '<div style="font-size:16px;font-weight:700;color:#000;margin-bottom:12px">📷 Muestra este QR al camarero</div>' +
+        '<img src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=' + encodeURIComponent(url) + '" style="width:240px;height:240px;border-radius:8px" />' +
+        '<div style="margin-top:16px"><button id="qr-amigo-close" style="background:#CC3333;color:#fff;border:none;border-radius:10px;padding:12px 32px;font-size:15px;font-weight:700;cursor:pointer">✕ Cerrar</button></div></div>';
+      document.body.appendChild(overlay);
+      overlay.querySelector('#qr-amigo-close').onclick = () => overlay.remove();
+      overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+    } catch (_) {}
+  }, 3000);
+}
+
 function subscribeRealtime() {
   subscribePresence();
+  startQrPoll();
   if (state.channel) return;
 
   state.channel = sb.channel(`web_mesa_${state.mesa.id}`, { config: { broadcast: { self: false, ack: false } } })
