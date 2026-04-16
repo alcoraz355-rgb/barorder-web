@@ -1361,12 +1361,14 @@ function subscribeRealtime() {
       }
 
       // QR enviado por el admin a este amigo
-      if (state.mesa.qr_target) {
+      const qrRaw = newMesa.qr_target || mesaFresh?.qr_target;
+      if (qrRaw) {
         try {
-          const qr = typeof state.mesa.qr_target === 'string' ? JSON.parse(state.mesa.qr_target) : state.mesa.qr_target;
-          if (qr.miembroId === state.miembro?.id) {
+          const qr = typeof qrRaw === 'string' ? JSON.parse(qrRaw) : qrRaw;
+          if (qr.miembroId === state.miembro?.id && !document.getElementById('qr-amigo-overlay')) {
             const url = qr.url || '';
             const overlay = document.createElement('div');
+            overlay.id = 'qr-amigo-overlay';
             overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center';
             overlay.innerHTML = '<div style="background:#fff;border-radius:20px;padding:28px;text-align:center;max-width:320px">' +
               '<div style="font-size:16px;font-weight:700;color:#000;margin-bottom:12px">📷 Muestra este QR al camarero</div>' +
