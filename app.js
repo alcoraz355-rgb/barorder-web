@@ -1316,25 +1316,6 @@ function subscribeRealtime() {
     .on('broadcast', { event: 'kick' }, (payload) => {
       if (payload.payload?.miembroId === state.miembro?.id) _mostrarDespedida();
     })
-    .on('broadcast', { event: 'qr_comanda' }, (payload) => {
-      if (payload.payload?.miembroId !== state.miembro?.id) return;
-      const url = payload.payload?.url || '';
-      // Mostrar QR de comanda al amigo
-      const overlay = document.createElement('div');
-      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center';
-      overlay.innerHTML = `
-        <div style="background:#fff;border-radius:20px;padding:28px;text-align:center;max-width:320px">
-          <div style="font-size:16px;font-weight:700;color:#000;margin-bottom:12px">📷 Muestra este QR al camarero</div>
-          <img src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(url)}" style="width:240px;height:240px;border-radius:8px" />
-          <div style="margin-top:16px">
-            <button id="qr-amigo-close" style="background:#CC3333;color:#fff;border:none;border-radius:10px;padding:12px 32px;font-size:15px;font-weight:700;cursor:pointer">✕ Cerrar</button>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(overlay);
-      overlay.querySelector('#qr-amigo-close').onclick = () => overlay.remove();
-      overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
-    })
     .on('broadcast', { event: 'pedido_modificado_admin' }, (payload) => {
       if (payload.payload?.miembroId !== state.miembro?.id) return;
       const rondaNum = payload.payload?.ronda || (state.mesa.ronda ?? 1);
@@ -1377,6 +1358,25 @@ function subscribeRealtime() {
       if ((state.mesa.ronda ?? 1) !== rondaAnterior) {
         state.quantities = {};
         state.brandSelections = {};
+      }
+
+      // QR enviado por el admin a este amigo
+      if (state.mesa.qr_target) {
+        try {
+          const qr = typeof state.mesa.qr_target === 'string' ? JSON.parse(state.mesa.qr_target) : state.mesa.qr_target;
+          if (qr.miembroId === state.miembro?.id) {
+            const url = qr.url || '';
+            const overlay = document.createElement('div');
+            overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:9999;display:flex;align-items:center;justify-content:center';
+            overlay.innerHTML = '<div style="background:#fff;border-radius:20px;padding:28px;text-align:center;max-width:320px">' +
+              '<div style="font-size:16px;font-weight:700;color:#000;margin-bottom:12px">📷 Muestra este QR al camarero</div>' +
+              '<img src="https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=' + encodeURIComponent(url) + '" style="width:240px;height:240px;border-radius:8px" />' +
+              '<div style="margin-top:16px"><button id="qr-amigo-close" style="background:#CC3333;color:#fff;border:none;border-radius:10px;padding:12px 32px;font-size:15px;font-weight:700;cursor:pointer">✕ Cerrar</button></div></div>';
+            document.body.appendChild(overlay);
+            overlay.querySelector('#qr-amigo-close').onclick = () => overlay.remove();
+            overlay.onclick = (e) => { if (e.target === overlay) overlay.remove(); };
+          }
+        } catch (_) {}
       }
 
       // Actualizar catálogo si cambió y refrescar pantalla de pedidos
