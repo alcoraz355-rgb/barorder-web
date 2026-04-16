@@ -836,7 +836,7 @@ function renderOrderScreen() {
   const nombreLabel = $('order-nombre-label');
   if (nombreLabel && state.nombre) nombreLabel.innerHTML = 'Pedido de <span style="color:#FF3333;text-transform:uppercase">' + state.nombre + '</span>';
   const grupoLabel = $('order-grupo-label');
-  if (grupoLabel) grupoLabel.textContent = 'Grupo: ' + (state.mesa.nombre || state.mesa.codigo);
+  if (grupoLabel) grupoLabel.innerHTML = '<span style="color:#fff">Grupo: </span><span style="color:#27AE60">' + (state.mesa.nombre || state.mesa.codigo) + '</span>';
   renderCategories();
   renderDrinks();
 
@@ -861,8 +861,8 @@ function renderOrderScreen() {
         const activos = (data || []).filter((m) => !m.nombre.startsWith('[SALIDO] '));
         if (activos.length > 0) {
           const pagador = activos[(ronda - 1) % activos.length];
-          pagadorEl.textContent = `Paga: ${pagador.nombre}`;
-          pagadorEl.style.display = 'block';
+          pagadorEl.innerHTML = `<span style="color:#fff">Paga: </span><span style="color:#9090FF">${pagador.nombre}</span>`;
+          pagadorEl.style.display = 'inline';
         }
       });
   }
