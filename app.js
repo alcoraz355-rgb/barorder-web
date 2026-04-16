@@ -361,13 +361,9 @@ async function init() {
       subscribeRealtime();
       startPollingEliminacion();
       await initChat();
-      if (mesa.estado === 'lanzada') {
-        await renderReparto();
-        showScreen('reparto');
-      } else {
-        renderHomeScreen();
-        showScreen('home');
-      }
+      // Si la mesa está lanzada, ir al home directamente (el reparto solo se muestra por realtime)
+      renderHomeScreen();
+      showScreen('home');
       return;
     }
     // Sesión antigua con miembro eliminado o salido → limpiar y mostrar pantalla de unirse
