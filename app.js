@@ -1295,13 +1295,15 @@ async function renderReparto() {
   const conducirEl = $('reparto-conducir');
   if (conducirEl) conducirEl.style.display = '';
 
-  // Volver al home automáticamente tras 2 segundos
-  setTimeout(() => {
-    if (document.querySelector('.screen.active')?.id === 'screen-reparto') {
+  // Volver al home automáticamente tras 3 segundos (solo si reparto está visible)
+  clearTimeout(window._repartoTimer);
+  window._repartoTimer = setTimeout(() => {
+    const activeScreen = document.querySelector('.screen.active')?.id;
+    if (activeScreen === 'screen-reparto') {
       renderHomeScreen();
       showScreen('home');
     }
-  }, 2000);
+  }, 3000);
 }
 
 // ─── Realtime ─────────────────────────────────────────────────────────────────
@@ -1363,6 +1365,8 @@ function subscribeRealtime() {
       if (state.mesa.estado === 'cerrada') {
         showClosedByAdmin();
       } else if (state.mesa.estado === 'lanzada') {
+        // Cerrar modales que puedan estar abiertos
+        document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
         await renderReparto();
         showScreen('reparto');
       } else if (state.mesa.estado === 'abierta') {
