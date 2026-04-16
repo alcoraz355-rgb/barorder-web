@@ -796,7 +796,10 @@ async function showResumenScreen() {
     Object.entries(porRonda).sort(([a], [b]) => Number(a) - Number(b)).forEach(([rondaNum, rPeds]) => {
       const header = document.createElement('div');
       header.style.cssText = 'display:flex;align-items:center;gap:8px;margin:12px 0 6px';
-      header.innerHTML = `<span style="color:#9090FF;font-size:19px;font-weight:900">Ronda Nº ${rondaNum}</span>
+      let modsKey = 'barorder_ronda_modificada_' + state.mesa.id;
+      let mods = []; try { mods = JSON.parse(localStorage.getItem(modsKey) || '[]'); } catch(_){}
+      const modTag = mods.includes(Number(rondaNum)) ? ' <span style="color:#D4A843;font-size:12px">(Modificada por admin)</span>' : '';
+      header.innerHTML = `<span style="color:#9090FF;font-size:19px;font-weight:900">Ronda Nº ${rondaNum}</span>${modTag}
         <div style="flex:1;height:1px;background:#9090FF;opacity:0.4"></div>`;
       list.appendChild(header);
 
@@ -1316,6 +1319,22 @@ function subscribeRealtime() {
   state.channel = sb.channel(`web_mesa_${state.mesa.id}`, { config: { broadcast: { self: false, ack: false } } })
     .on('broadcast', { event: 'kick' }, (payload) => {
       if (payload.payload?.miembroId === state.miembro?.id) _mostrarDespedida();
+    })
+    .on('broadcast', { event: 'pedido_modificado_admin' }, (payload) => {
+      if (payload.payload?.miembroId !== state.miembro?.id) return;
+      const rondaNum = payload.payload?.ronda || (state.mesa.ronda ?? 1);
+      // Guardar marca en historial local
+      try {
+        const key = 'barorder_ronda_modificada_' + state.mesa.id;
+        const mods = JSON.parse(localStorage.getItem(key) || '[]');
+        if (!mods.includes(rondaNum)) { mods.push(rondaNum); localStorage.setItem(key, JSON.stringify(mods)); }
+      } catch (_) {}
+      // Mostrar aviso 2 segundos
+      const aviso = document.createElement('div');
+      aviso.style.cssText = 'position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);background:#1A1A1A;border:2px solid #D4A843;border-radius:16px;padding:24px 32px;z-index:9999;text-align:center;color:#fff;font-size:16px;font-weight:700;box-shadow:0 8px 32px rgba(0,0,0,0.8)';
+      aviso.innerHTML = '⚠️<br>El admin ha modificado<br>tu pedido';
+      document.body.appendChild(aviso);
+      setTimeout(() => aviso.remove(), 2000);
     })
     .on('postgres_changes', {
       event: 'UPDATE', schema: 'public', table: 'miembros',
