@@ -6,7 +6,10 @@
   <title>Comanda</title>
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
-    body { background: #fff; color: #000; font-family: system-ui, sans-serif; padding: 28px 24px; }
+    body { background: #fff; color: #000; font-family: system-ui, sans-serif; padding: 20px 24px; }
+    .header { border-bottom: 2px solid #000; padding-bottom: 12px; margin-bottom: 16px; }
+    .grupo { font-size: 26px; font-weight: 900; color: #000; }
+    .admin { font-size: 18px; font-weight: 600; color: #444; margin-top: 4px; }
     .item { display: flex; align-items: baseline; gap: 20px; padding: 16px 0; border-bottom: 1px solid #ddd; }
     .item:last-child { border-bottom: none; }
     .qty  { font-size: 44px; font-weight: 900; min-width: 52px; text-align: right; line-height: 1; }
@@ -15,6 +18,7 @@
   </style>
 </head>
 <body>
+  <div id="cabecera"></div>
   <div id="lista"><p class="msg">Cargando…</p></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -25,16 +29,25 @@
     const mesaId = location.pathname.split('/').filter(Boolean).pop();
 
     async function cargar() {
-      if (!mesaId) { render([]); return; }
-      const { data } = await sb
-        .from('pedidos')
-        .select('drink_name, drink_emoji, cantidad, marca')
-        .eq('mesa_id', mesaId)
-        .eq('estado', 'confirmado');
-      render(data || []);
+      if (!mesaId) { render([], null, null); return; }
+      const [pedidosRes, mesaRes, miembrosRes] = await Promise.all([
+        sb.from('pedidos').select('drink_name, drink_emoji, cantidad, marca').eq('mesa_id', mesaId).eq('estado', 'confirmado'),
+        sb.from('mesas').select('nombre, codigo').eq('id', mesaId).single(),
+        sb.from('miembros').select('nombre, es_admin').eq('mesa_id', mesaId).eq('es_admin', true).limit(1),
+      ]);
+      render(pedidosRes.data || [], mesaRes.data, (miembrosRes.data || [])[0]);
     }
 
-    function render(pedidos) {
+    function render(pedidos, mesa, admin) {
+      const cab = document.getElementById('cabecera');
+      if (mesa) {
+        let html = '<div class="header">';
+        html += '<div class="grupo">' + (mesa.nombre || mesa.codigo || '') + '</div>';
+        if (admin) html += '<div class="admin">Admin: ' + admin.nombre + '</div>';
+        html += '</div>';
+        cab.innerHTML = html;
+      }
+
       const el = document.getElementById('lista');
       if (!pedidos.length) {
         el.innerHTML = '<p class="msg">Comanda no encontrada</p>';
