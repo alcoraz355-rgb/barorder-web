@@ -42,8 +42,8 @@
       const cab = document.getElementById('cabecera');
       if (mesa) {
         let html = '<div class="header">';
-        html += '<div class="grupo">' + (mesa.nombre || mesa.codigo || '') + '</div>';
-        if (admin) html += '<div class="admin">Admin: ' + admin.nombre + '</div>';
+        html += '<div class="grupo">Grupo: ' + (mesa.nombre || mesa.codigo || '') + '</div>';
+        if (admin) html += '<div class="admin">Administrador: ' + admin.nombre + '</div>';
         html += '</div>';
         cab.innerHTML = html;
       }
