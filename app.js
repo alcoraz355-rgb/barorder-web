@@ -938,7 +938,7 @@ function renderOrderScreen() {
     }
   }
   const grupoLabel = $('order-grupo-label');
-  if (grupoLabel) grupoLabel.innerHTML = '<span style="color:#fff">Grupo: </span><span style="color:#27AE60">' + (state.mesa.nombre || state.mesa.codigo) + '</span>';
+  if (grupoLabel) { grupoLabel.innerHTML = ''; grupoLabel.style.display = 'none'; }
   renderCategories();
   renderDrinks();
 
