@@ -145,10 +145,8 @@ body.amigo-mode .historial-member { background: #4a3020; }
   margin-bottom: 8px;
   text-align: center;
 }
-.home-ronda-box.abierta .home-ronda-text,
-.home-ronda-box.abierta .home-ronda-num { color: var(--gold); }
-.home-ronda-text { color: #999; font-size: 15px; font-weight: 700; letter-spacing: 0.5px; }
-.home-ronda-num  { color: #999; font-size: 22px; font-weight: 900; }
+.home-ronda-text { color: var(--gold); font-size: 15px; font-weight: 700; letter-spacing: 0.5px; }
+.home-ronda-num  { color: var(--gold); font-size: 22px; font-weight: 900; }
 .home-pagador-lines { width: 100%; display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
 .home-pagador-row { display: flex; align-items: baseline; flex-wrap: wrap; }
 .home-pagador-label { color: #999; font-size: 14px; font-weight: 700; }
@@ -166,8 +164,8 @@ body.amigo-mode .historial-member { background: #4a3020; }
   cursor: pointer;
   background: transparent;
 }
-.home-btn-pedidos { border-color: var(--gold); color: #fff; background: #000; }
-.home-btn-pedidos:disabled { border-color: #444; color: #666; background: #000; cursor: not-allowed; opacity: 0.5; }
+.home-btn-pedidos { border-color: #27AE60; color: #fff; background: #000; }
+.home-btn-pedidos:disabled { border-color: #80302A; color: #888; background: #000; cursor: not-allowed; opacity: 0.85; }
 .home-btn-gold { border-color: var(--gold); color: var(--gold); background: #000; }
 .home-btn-salir { border-color: var(--danger); color: var(--danger); background: #000; margin-top: 8px; }
 
