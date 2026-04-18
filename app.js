@@ -490,6 +490,10 @@ function renderHomeScreen() {
   const mesa = state.mesa;
   const ronda = mesa.ronda ?? 1;
   const abierta = mesa.estado === 'abierta';
+  // La ronda solo se considera "iniciada" cuando el admin ha elegido el pagador
+  // (en ese momento orden_pagadores se llena). Antes, el amigo no puede pedir.
+  const ordenIds = Array.isArray(mesa.orden_pagadores) ? mesa.orden_pagadores : [];
+  const rondaIniciada = abierta && ordenIds.length > 0;
 
   // Fecha
   const fechaEl = $('home-fecha');
@@ -512,31 +516,30 @@ function renderHomeScreen() {
   const rondaBoxEl = $('home-ronda-box');
   const rondaLabelEl = $('home-ronda-label');
   const rondaNumEl = $('home-ronda-num');
-  if (rondaBoxEl) rondaBoxEl.classList.toggle('abierta', abierta);
-  if (rondaLabelEl) rondaLabelEl.textContent = abierta ? 'Se está pidiendo en la RONDA' : 'Pedidos cerrados para la RONDA';
+  if (rondaBoxEl) rondaBoxEl.classList.toggle('abierta', rondaIniciada);
+  if (rondaLabelEl) {
+    if (!rondaIniciada && abierta) rondaLabelEl.textContent = 'Esperando a que el admin inicie la RONDA';
+    else if (rondaIniciada) rondaLabelEl.textContent = 'Se está pidiendo en la RONDA';
+    else rondaLabelEl.textContent = 'Pedidos cerrados para la RONDA';
+  }
   if (rondaNumEl) rondaNumEl.textContent = ronda;
 
-  // Pagador de esta ronda y la siguiente
+  // Pagador de esta ronda y la siguiente (solo si la ronda está iniciada)
   const pagadorLinesEl = $('home-pagador-lines');
-  if (pagadorLinesEl) {
+  if (pagadorLinesEl && !rondaIniciada) {
+    pagadorLinesEl.style.display = 'none';
+  }
+  if (pagadorLinesEl && rondaIniciada) {
     sb.from('miembros').select('id, nombre').eq('mesa_id', mesa.id).order('created_at', { ascending: true })
       .then(({ data }) => {
         const activos = (data || []).filter((m) => !m.nombre.startsWith('[SALIDO] '));
         if (activos.length === 0) return;
-        // Preferir el orden sincronizado por el admin; si no, orden de creación rotando por ronda
-        const ordenIds = Array.isArray(mesa.orden_pagadores) ? mesa.orden_pagadores : [];
-        let pagador, sigPagador;
-        if (ordenIds.length > 0) {
-          const mapa = {}; activos.forEach((m) => { mapa[m.id] = m; });
-          const ordenados = ordenIds.map((id) => mapa[id]).filter(Boolean);
-          // Añadir miembros nuevos no presentes en el orden guardado
-          activos.forEach((m) => { if (!ordenIds.includes(m.id)) ordenados.push(m); });
-          pagador = ordenados[0];
-          sigPagador = ordenados[1] || ordenados[0];
-        } else {
-          pagador = activos[(ronda - 1) % activos.length];
-          sigPagador = activos[ronda % activos.length];
-        }
+        // orden_pagadores siempre está lleno aquí (rondaIniciada garantiza length > 0)
+        const mapa = {}; activos.forEach((m) => { mapa[m.id] = m; });
+        const ordenados = ordenIds.map((id) => mapa[id]).filter(Boolean);
+        activos.forEach((m) => { if (!ordenIds.includes(m.id)) ordenados.push(m); });
+        const pagador = ordenados[0];
+        const sigPagador = ordenados[1] || ordenados[0];
         const sigRonda = ronda + 1;
         const textEl = $('home-pagador-text');
         if (textEl && pagador && sigPagador) {
@@ -579,6 +582,7 @@ function renderHomeScreen() {
     };
   }
 
+  // Botón pedidos
   // Botón pedidos — muestra nombre del bar si hay uno activo y recarga catálogo al abrir
   const btnPedidos = $('btn-home-pedidos');
   if (btnPedidos) {
@@ -587,12 +591,14 @@ function renderHomeScreen() {
     const tituloBar = nombreBarPedidos
       ? (/^(bar|restaurante)\b/i.test(nombreBarPedidos) ? nombreBarPedidos : `Bar ${nombreBarPedidos}`).toUpperCase()
       : '';
-    if (tienePedido) {
+    if (!rondaIniciada) {
+      btnPedidos.textContent = '⏳  ESPERANDO AL ADMIN';
+    } else if (tienePedido) {
       btnPedidos.textContent = tituloBar ? `✏️  MODIFICAR PEDIDO — ${tituloBar}` : '✏️  MODIFICAR PEDIDO';
     } else {
       btnPedidos.textContent = tituloBar ? `🍺  NUEVO PEDIDO — ${tituloBar}` : '🍺  NUEVO PEDIDO';
     }
-    btnPedidos.disabled = !abierta;
+    btnPedidos.disabled = !rondaIniciada;
     btnPedidos.onclick = async () => {
       // Cargar catálogo activo más reciente antes de abrir la pantalla de pedido
       try {
