@@ -810,14 +810,18 @@ async function showResumenScreen() {
     const historialLocal = cargarHistorialLocal();
 
     // Construir mapa por ronda: historial local + ronda actual
+    // Cada entrada: { pedidos, bar }
     const porRonda = {};
-    historialLocal.forEach(({ rondaNum, pedidos }) => {
-      porRonda[rondaNum] = pedidos;
+    historialLocal.forEach(({ rondaNum, pedidos, bar }) => {
+      porRonda[rondaNum] = { pedidos, bar: bar || null };
     });
     // La ronda actual de BD sobreescribe si ya existia guardada
     const rondaActual = state.mesa.ronda ?? 1;
     if (pedidosActuales && pedidosActuales.length) {
-      porRonda[rondaActual] = pedidosActuales;
+      porRonda[rondaActual] = {
+        pedidos: pedidosActuales,
+        bar: (state.mesa.nombre_bar || '').trim() || (porRonda[rondaActual]?.bar || null),
+      };
     }
 
     list.innerHTML = '';
@@ -829,8 +833,8 @@ async function showResumenScreen() {
 
     // Total consumido (todas las rondas)
     let consumido = 0;
-    Object.values(porRonda).forEach((peds) => {
-      peds.forEach((p) => { consumido += getPrice(p.drink_id) * p.cantidad; });
+    Object.values(porRonda).forEach((entry) => {
+      (entry.pedidos || []).forEach((p) => { consumido += getPrice(p.drink_id) * p.cantidad; });
     });
 
     const totalBox = document.createElement('div');
@@ -848,13 +852,18 @@ async function showResumenScreen() {
     list.appendChild(totalBox);
 
     // Mostrar cada ronda
-    Object.entries(porRonda).sort(([a], [b]) => Number(a) - Number(b)).forEach(([rondaNum, rPeds]) => {
+    Object.entries(porRonda).sort(([a], [b]) => Number(a) - Number(b)).forEach(([rondaNum, entry]) => {
+      const rPeds = entry.pedidos || [];
+      const bar = entry.bar || null;
       const header = document.createElement('div');
-      header.style.cssText = 'display:flex;align-items:center;gap:8px;margin:12px 0 6px';
+      header.style.cssText = 'display:flex;align-items:center;gap:8px;margin:12px 0 6px;flex-wrap:wrap';
       let modsKey = 'barorder_ronda_modificada_' + state.mesa.id;
       let mods = []; try { mods = JSON.parse(localStorage.getItem(modsKey) || '[]'); } catch(_){}
       const modTag = mods.includes(Number(rondaNum)) ? ' <span style="color:#D4A843;font-size:12px">(Modificada por admin)</span>' : '';
-      header.innerHTML = `<span style="color:#9090FF;font-size:19px;font-weight:900">Ronda Nº ${rondaNum}</span>${modTag}
+      const barTag = bar
+        ? ` <span style="color:#27AE60;font-family:Georgia,\\'Times New Roman\\',serif;font-style:italic;font-weight:700;font-size:17px">— ${bar}</span>`
+        : '';
+      header.innerHTML = `<span style="color:#9090FF;font-size:19px;font-weight:900">Ronda Nº ${rondaNum}</span>${barTag}${modTag}
         <div style="flex:1;height:1px;background:#9090FF;opacity:0.4"></div>`;
       list.appendChild(header);
 
@@ -1298,7 +1307,8 @@ function guardarHistorialRonda(pedidos, rondaNum) {
   let historial = [];
   try { historial = JSON.parse(localStorage.getItem(_historialKey()) || '[]'); } catch {}
   const idx = historial.findIndex((r) => r.rondaNum === rondaNum);
-  const entry = { rondaNum, pedidos };
+  const bar = (state.mesa.nombre_bar || '').trim() || null;
+  const entry = { rondaNum, pedidos, bar };
   if (idx >= 0) historial[idx] = entry;
   else historial.push(entry);
   localStorage.setItem(_historialKey(), JSON.stringify(historial));
