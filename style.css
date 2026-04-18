@@ -154,7 +154,7 @@ body.amigo-mode .historial-member { background: #4a3020; }
 }
 .home-ronda-box.abierta .home-ronda-text,
 .home-ronda-box.abierta .home-ronda-num {
-  animation: rondaBlink 1.4s ease-in-out infinite;
+  animation: rondaBlink 2.8s ease-in-out infinite;
 }
 
 /* Todos los estados usan estética "bar" — verde y tipografía serif italic (como "Bar Paco" del historial) */
@@ -203,6 +203,13 @@ body.amigo-mode .historial-member { background: #4a3020; }
   background: transparent;
 }
 .home-btn-pedidos { border-color: var(--gold); color: #fff; background: #000; white-space: nowrap; }
+.home-btn-pedidos:not(:disabled) {
+  animation: borderPulse 2.8s ease-in-out infinite;
+}
+@keyframes borderPulse {
+  0%, 100% { border-color: #D4A843; }
+  50%      { border-color: rgba(212, 168, 67, 0.25); }
+}
 .home-btn-pedidos:disabled {
   border-color: transparent;
   background: transparent;
