@@ -927,7 +927,16 @@ async function showResumenScreen() {
 // ─── Pantalla de pedido ───────────────────────────────────────────────────────
 function renderOrderScreen() {
   const nombreLabel = $('order-nombre-label');
-  if (nombreLabel && state.nombre) nombreLabel.innerHTML = 'Pedido de <span style="color:#FF3333;text-transform:uppercase">' + state.nombre + '</span>';
+  if (nombreLabel) {
+    const rawBar = (state.mesa.nombre_bar || '').trim();
+    if (rawBar) {
+      const empiezaConBar = /^(bar|restaurante)\b/i.test(rawBar);
+      const nombreBarLabel = (empiezaConBar ? rawBar : `Bar ${rawBar}`).toUpperCase();
+      nombreLabel.innerHTML = '<span style="color:#D4A843">Bar:</span> <span style="color:#FF3333">' + nombreBarLabel + '</span>';
+    } else if (state.nombre) {
+      nombreLabel.innerHTML = 'Pedido de <span style="color:#FF3333;text-transform:uppercase">' + state.nombre + '</span>';
+    }
+  }
   const grupoLabel = $('order-grupo-label');
   if (grupoLabel) grupoLabel.innerHTML = '<span style="color:#fff">Grupo: </span><span style="color:#27AE60">' + (state.mesa.nombre || state.mesa.codigo) + '</span>';
   renderCategories();
