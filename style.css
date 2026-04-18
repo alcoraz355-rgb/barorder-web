@@ -147,7 +147,9 @@ body.amigo-mode .historial-member { background: #4a3020; }
 }
 .home-ronda-text { color: var(--gold); font-size: 15px; font-weight: 700; letter-spacing: 0.5px; }
 .home-ronda-num  { color: var(--gold); font-size: 22px; font-weight: 900; }
-/* Estados que usan estética "bar" — verde y tipografía serif italic (como "Bar Paco" del historial) */
+/* Todos los estados usan estética "bar" — verde y tipografía serif italic (como "Bar Paco" del historial) */
+.home-ronda-box .home-ronda-text,
+.home-ronda-box.abierta .home-ronda-text,
 .home-ronda-box.estado-lanzada .home-ronda-text,
 .home-ronda-box.estado-esperando .home-ronda-text {
   color: #27AE60;
@@ -155,6 +157,8 @@ body.amigo-mode .historial-member { background: #4a3020; }
   font-style: italic;
   font-weight: 700;
 }
+.home-ronda-box .home-ronda-num,
+.home-ronda-box.abierta .home-ronda-num,
 .home-ronda-box.estado-lanzada .home-ronda-num,
 .home-ronda-box.estado-esperando .home-ronda-num {
   color: #27AE60;
@@ -188,7 +192,7 @@ body.amigo-mode .historial-member { background: #4a3020; }
   cursor: pointer;
   background: transparent;
 }
-.home-btn-pedidos { border-color: #27AE60; color: #fff; background: #000; white-space: nowrap; }
+.home-btn-pedidos { border-color: var(--gold); color: #fff; background: #000; white-space: nowrap; }
 .home-btn-pedidos:disabled {
   border-color: transparent;
   background: transparent;
