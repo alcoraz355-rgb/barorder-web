@@ -598,7 +598,12 @@ function renderHomeScreen() {
         if (emoji) emoji.textContent = '👋';
       }
       showScreen('closed');
-      setTimeout(() => { window.close(); }, 2000);
+      setTimeout(() => {
+        // Intentar cerrar la pestaña; si el navegador no lo permite, dejar la pantalla vacía
+        try { window.close(); } catch (_) {}
+        document.body.innerHTML = '';
+        document.body.style.background = '#0D0D0D';
+      }, 2000);
     };
   }
 
