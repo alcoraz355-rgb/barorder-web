@@ -147,6 +147,30 @@ body.amigo-mode .historial-member { background: #4a3020; }
 }
 .home-ronda-text { color: var(--gold); font-size: 15px; font-weight: 700; letter-spacing: 0.5px; }
 .home-ronda-num  { color: var(--gold); font-size: 22px; font-weight: 900; }
+/* Estados que usan estética "bar" — verde y tipografía serif italic (como "Bar Paco" del historial) */
+.home-ronda-box.estado-lanzada .home-ronda-text,
+.home-ronda-box.estado-esperando .home-ronda-text {
+  color: #27AE60;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-style: italic;
+  font-weight: 700;
+}
+.home-ronda-box.estado-lanzada .home-ronda-num,
+.home-ronda-box.estado-esperando .home-ronda-num {
+  color: #27AE60;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-style: italic;
+}
+.home-orden-entregada {
+  color: #27AE60;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-style: italic;
+  font-size: 15px;
+  font-weight: 700;
+  text-align: center;
+  margin-bottom: 10px;
+  letter-spacing: 0.3px;
+}
 .home-pagador-lines { width: 100%; display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
 .home-pagador-row { display: flex; align-items: baseline; flex-wrap: wrap; }
 .home-pagador-label { color: #999; font-size: 14px; font-weight: 700; }
@@ -165,7 +189,18 @@ body.amigo-mode .historial-member { background: #4a3020; }
   background: transparent;
 }
 .home-btn-pedidos { border-color: #27AE60; color: #fff; background: #000; white-space: nowrap; }
-.home-btn-pedidos:disabled { border-color: transparent; color: #D4A843; background: transparent; cursor: not-allowed; opacity: 1; font-size: 15px; white-space: nowrap; }
+.home-btn-pedidos:disabled {
+  border-color: transparent;
+  background: transparent;
+  cursor: not-allowed;
+  opacity: 1;
+  color: #27AE60;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-style: italic;
+  font-weight: 700;
+  font-size: 15px;
+  white-space: nowrap;
+}
 .home-btn-gold { border-color: var(--gold); color: var(--gold); background: #000; }
 .home-btn-salir { border-color: var(--danger); color: var(--danger); background: #000; margin-top: 12px; padding: 10px; font-size: 13px; }
 

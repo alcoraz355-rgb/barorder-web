@@ -516,13 +516,24 @@ function renderHomeScreen() {
   const rondaBoxEl = $('home-ronda-box');
   const rondaLabelEl = $('home-ronda-label');
   const rondaNumEl = $('home-ronda-num');
-  if (rondaBoxEl) rondaBoxEl.classList.toggle('abierta', rondaIniciada);
+  if (rondaBoxEl) {
+    rondaBoxEl.classList.toggle('abierta', rondaIniciada);
+    rondaBoxEl.classList.toggle('estado-lanzada', mesa.estado === 'lanzada');
+    rondaBoxEl.classList.toggle('estado-esperando', !rondaIniciada && abierta);
+  }
   if (rondaLabelEl) {
     if (!rondaIniciada && abierta) rondaLabelEl.textContent = 'Esperando a que el admin inicie la RONDA';
     else if (rondaIniciada) rondaLabelEl.textContent = 'Se está pidiendo en la RONDA';
     else rondaLabelEl.textContent = 'Pedidos cerrados para la RONDA';
   }
   if (rondaNumEl) rondaNumEl.textContent = ronda;
+
+  // Aviso de "orden entregada al camarero" — visible solo mientras estado='lanzada'.
+  // Desaparece al abrir una nueva ronda (estado pasa a 'abierta' otra vez).
+  const ordenEntregadaEl = $('home-orden-entregada');
+  if (ordenEntregadaEl) {
+    ordenEntregadaEl.style.display = mesa.estado === 'lanzada' ? 'block' : 'none';
+  }
 
   // Pagador de esta ronda y la siguiente (solo si la ronda está iniciada)
   const pagadorLinesEl = $('home-pagador-lines');
@@ -1519,10 +1530,10 @@ function subscribeRealtime() {
       if (state.mesa.estado === 'cerrada') {
         showClosedByAdmin();
       } else if (state.mesa.estado === 'lanzada' && estadoAnterior !== 'lanzada') {
-        // Solo mostrar reparto cuando la mesa ACABA de lanzarse
+        // Orden lanzada: cerrar modales y mostrar home con el aviso "orden entregada al camarero"
         document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
-        await renderReparto();
-        showScreen('reparto');
+        renderHomeScreen();
+        showScreen('home');
       } else if (state.mesa.estado === 'abierta') {
         const currentScreenId = document.querySelector('.screen.active')?.id;
         if (currentScreenId === 'screen-home') {
@@ -1532,7 +1543,6 @@ function subscribeRealtime() {
           renderHomeScreen();
           showScreen('home');
         } else {
-          // desde reparto o loading → ir a home
           renderHomeScreen();
           showScreen('home');
         }
@@ -1605,9 +1615,10 @@ async function _checkEliminado() {
   if (state.mesa.estado === 'cerrada') {
     showClosedByAdmin();
   } else if (state.mesa.estado === 'lanzada') {
-    if (currentScreenId !== 'screen-reparto') { await renderReparto(); showScreen('reparto'); }
+    if (currentScreenId !== 'screen-home') { renderHomeScreen(); showScreen('home'); }
+    else renderHomeScreen();
   } else if (state.mesa.estado === 'abierta') {
-    if (currentScreenId === 'screen-reparto' || currentScreenId === 'screen-loading') {
+    if (currentScreenId === 'screen-loading') {
       renderHomeScreen(); showScreen('home');
     } else if (currentScreenId === 'screen-home') {
       renderHomeScreen();
