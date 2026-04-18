@@ -932,7 +932,7 @@ function renderOrderScreen() {
     if (rawBar) {
       const empiezaConBar = /^(bar|restaurante)\b/i.test(rawBar);
       const nombreBarLabel = (empiezaConBar ? rawBar : `Bar ${rawBar}`).toUpperCase();
-      nombreLabel.innerHTML = '<span style="color:#D4A843">Bar:</span> <span style="color:#FF3333">' + nombreBarLabel + '</span>';
+      nombreLabel.innerHTML = '<span style="color:#FF3333">' + nombreBarLabel + '</span>';
     } else if (state.nombre) {
       nombreLabel.innerHTML = 'Pedido de <span style="color:#FF3333;text-transform:uppercase">' + state.nombre + '</span>';
     }
