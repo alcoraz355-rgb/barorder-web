@@ -7,7 +7,18 @@
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 
-const CATEGORIES = ['Todos', 'Cerveza', 'Vino', 'Cóctel', 'Spirits', 'Licores', 'Sin alcohol', 'Aperitivos'];
+const BASE_CATEGORIES = ['Todos', 'Cerveza', 'Vino', 'Cóctel', 'Spirits', 'Licores', 'Sin alcohol', 'Aperitivos'];
+const CATEGORIES = BASE_CATEGORIES;
+
+// Devuelve las categorías presentes en el catálogo activo (admin default o bar).
+// Mantiene el orden estándar y añade extras (ej. "Tapas", "Café") al final.
+function getCurrentCategories(drinks) {
+  const src = drinks || (typeof getAllDrinks === 'function' ? getAllDrinks() : []);
+  const presentes = [...new Set(src.map((d) => d.category).filter(Boolean))];
+  const orden = BASE_CATEGORIES.filter((c) => c === 'Todos' || presentes.includes(c));
+  const extras = presentes.filter((c) => !BASE_CATEGORIES.includes(c));
+  return [...orden, ...extras];
+}
 
 const DRINKS = [
   // ── Cerveza ──────────────────────────────────────────────────────────────
@@ -508,17 +519,30 @@ function renderHomeScreen() {
   // Pagador de esta ronda y la siguiente
   const pagadorLinesEl = $('home-pagador-lines');
   if (pagadorLinesEl) {
-    sb.from('miembros').select('nombre').eq('mesa_id', mesa.id).order('created_at', { ascending: true })
+    sb.from('miembros').select('id, nombre').eq('mesa_id', mesa.id).order('created_at', { ascending: true })
       .then(({ data }) => {
         const activos = (data || []).filter((m) => !m.nombre.startsWith('[SALIDO] '));
-        if (activos.length > 0) {
-          const pagador = activos[(ronda - 1) % activos.length];
-          const sigPagador = activos[ronda % activos.length];
-          const sigRonda = ronda + 1;
-          const textEl = $('home-pagador-text');
-          if (textEl) textEl.textContent = `Pago RONDAS ${ronda}/${sigRonda}: ${pagador.nombre} / ${sigPagador.nombre}`;
-          pagadorLinesEl.style.display = 'block';
+        if (activos.length === 0) return;
+        // Preferir el orden sincronizado por el admin; si no, orden de creación rotando por ronda
+        const ordenIds = Array.isArray(mesa.orden_pagadores) ? mesa.orden_pagadores : [];
+        let pagador, sigPagador;
+        if (ordenIds.length > 0) {
+          const mapa = {}; activos.forEach((m) => { mapa[m.id] = m; });
+          const ordenados = ordenIds.map((id) => mapa[id]).filter(Boolean);
+          // Añadir miembros nuevos no presentes en el orden guardado
+          activos.forEach((m) => { if (!ordenIds.includes(m.id)) ordenados.push(m); });
+          pagador = ordenados[0];
+          sigPagador = ordenados[1] || ordenados[0];
+        } else {
+          pagador = activos[(ronda - 1) % activos.length];
+          sigPagador = activos[ronda % activos.length];
         }
+        const sigRonda = ronda + 1;
+        const textEl = $('home-pagador-text');
+        if (textEl && pagador && sigPagador) {
+          textEl.textContent = `Pago RONDAS ${ronda}/${sigRonda}: ${pagador.nombre} / ${sigPagador.nombre}`;
+        }
+        pagadorLinesEl.style.display = 'block';
       });
   }
 
@@ -555,13 +579,32 @@ function renderHomeScreen() {
     };
   }
 
-  // Botón pedidos
+  // Botón pedidos — muestra nombre del bar si hay uno activo y recarga catálogo al abrir
   const btnPedidos = $('btn-home-pedidos');
   if (btnPedidos) {
     const tienePedido = Object.values(state.quantities || {}).some((q) => q > 0);
-    btnPedidos.textContent = tienePedido ? '✏️  MODIFICAR PEDIDO' : '🍺  NUEVO PEDIDO';
+    const nombreBarPedidos = (mesa.nombre_bar || '').trim();
+    const tituloBar = nombreBarPedidos
+      ? (/^(bar|restaurante)\b/i.test(nombreBarPedidos) ? nombreBarPedidos : `Bar ${nombreBarPedidos}`).toUpperCase()
+      : '';
+    if (tienePedido) {
+      btnPedidos.textContent = tituloBar ? `✏️  MODIFICAR PEDIDO — ${tituloBar}` : '✏️  MODIFICAR PEDIDO';
+    } else {
+      btnPedidos.textContent = tituloBar ? `🍺  NUEVO PEDIDO — ${tituloBar}` : '🍺  NUEVO PEDIDO';
+    }
     btnPedidos.disabled = !abierta;
-    btnPedidos.onclick = () => { renderOrderScreen(); showScreen('order'); };
+    btnPedidos.onclick = async () => {
+      // Cargar catálogo activo más reciente antes de abrir la pantalla de pedido
+      try {
+        const { data: mesaFresh } = await sb.from('mesas').select('custom_drinks, nombre_bar').eq('id', state.mesa.id).single();
+        if (mesaFresh) {
+          if (Array.isArray(mesaFresh.custom_drinks)) state.customDrinks = mesaFresh.custom_drinks;
+          if ('nombre_bar' in mesaFresh) state.mesa.nombre_bar = mesaFresh.nombre_bar;
+        }
+      } catch {}
+      renderOrderScreen();
+      showScreen('order');
+    };
   }
 
   // Botón historial
@@ -570,21 +613,36 @@ function renderHomeScreen() {
     btnHistorial.onclick = showResumenScreen;
   }
 
-  // Botón catálogo — carga datos frescos de Supabase y muestra el catálogo activo del admin
+  // Botón catálogo — carga datos frescos y muestra el catálogo activo del admin.
+  // Si el admin tiene un bar cargado, el botón muestra el nombre del bar en vez de "CATÁLOGO".
   const btnCatalogo = $('btn-home-catalogo');
   if (btnCatalogo) {
+    const nombreBar = (mesa.nombre_bar || '').trim();
+    if (nombreBar) {
+      const empiezaConBar = /^(bar|restaurante)\b/i.test(nombreBar);
+      const titulo = (empiezaConBar ? nombreBar : `Bar ${nombreBar}`).toUpperCase();
+      btnCatalogo.textContent = `🍹 ${titulo}`;
+    } else {
+      btnCatalogo.textContent = '🍹 CATÁLOGO';
+    }
     btnCatalogo.onclick = async () => {
       try {
-        const { data: mesaFresh } = await sb.from('mesas').select('custom_drinks').eq('id', state.mesa.id).single();
+        const { data: mesaFresh } = await sb.from('mesas').select('custom_drinks, nombre_bar').eq('id', state.mesa.id).single();
         if (mesaFresh?.custom_drinks?.length) {
           state.customDrinks = mesaFresh.custom_drinks;
         }
+        if (mesaFresh && 'nombre_bar' in mesaFresh) {
+          state.mesa.nombre_bar = mesaFresh.nombre_bar;
+        }
       } catch {}
+      const tituloPantalla = (state.mesa.nombre_bar && state.mesa.nombre_bar.trim())
+        ? (/^(bar|restaurante)\b/i.test(state.mesa.nombre_bar.trim()) ? state.mesa.nombre_bar.trim() : `Bar ${state.mesa.nombre_bar.trim()}`)
+        : 'Precios del bar';
       // Usar directamente los precios que vienen en custom_drinks del admin
       const drinks = (state.customDrinks && state.customDrinks.length > 0)
         ? state.customDrinks.map((d) => ({ ...d, price: d.price ?? d.defaultPrice ?? 0 }))
         : DRINKS.map((d) => ({ ...d, price: d.defaultPrice ?? 0 }));
-      showCatalogoScreen(drinks, 'Precios del bar');
+      showCatalogoScreen(drinks, tituloPantalla);
     };
   }
 }
@@ -664,7 +722,8 @@ function showCatalogoSelector() {
 }
 
 function showCatalogoScreen(drinks, titulo, selectedCat = 'Todos') {
-  const categories = ['Todos', 'Cerveza', 'Vino', 'Cóctel', 'Spirits', 'Licores', 'Sin alcohol', 'Aperitivos'];
+  const categories = getCurrentCategories(drinks);
+  if (!categories.includes(selectedCat)) selectedCat = 'Todos';
   const catsEl = $('catalogo-screen-cats');
   const list = $('catalogo-screen-list');
 
@@ -855,11 +914,19 @@ function renderOrderScreen() {
   // Nombre del pagador de esta ronda
   const pagadorEl = document.getElementById('order-pagador-badge');
   if (pagadorEl) {
-    sb.from('miembros').select('nombre').eq('mesa_id', state.mesa.id).order('created_at', { ascending: true })
+    sb.from('miembros').select('id, nombre').eq('mesa_id', state.mesa.id).order('created_at', { ascending: true })
       .then(({ data }) => {
         const activos = (data || []).filter((m) => !m.nombre.startsWith('[SALIDO] '));
-        if (activos.length > 0) {
-          const pagador = activos[(ronda - 1) % activos.length];
+        if (activos.length === 0) return;
+        const ordenIds = Array.isArray(state.mesa.orden_pagadores) ? state.mesa.orden_pagadores : [];
+        let pagador;
+        if (ordenIds.length > 0) {
+          const mapa = {}; activos.forEach((m) => { mapa[m.id] = m; });
+          pagador = (ordenIds.map((id) => mapa[id]).filter(Boolean))[0] || activos[0];
+        } else {
+          pagador = activos[(ronda - 1) % activos.length];
+        }
+        if (pagador) {
           pagadorEl.innerHTML = `<span style="color:#fff">Paga: </span><span style="color:#9090FF">${pagador.nombre}</span>`;
           pagadorEl.style.display = 'inline';
         }
@@ -870,7 +937,10 @@ function renderOrderScreen() {
 function renderCategories() {
   const el = $('cat-filter');
   el.innerHTML = '';
-  CATEGORIES.forEach((cat) => {
+  const cats = getCurrentCategories();
+  // Si la categoría seleccionada ya no existe en el catálogo actual, reset a 'Todos'
+  if (!cats.includes(state.selectedCategory)) state.selectedCategory = 'Todos';
+  cats.forEach((cat) => {
     const pill = document.createElement('button');
     pill.className = 'cat-pill' + (cat === state.selectedCategory ? ' active' : '');
     pill.textContent = cat;
@@ -905,7 +975,7 @@ function renderDrinks(searchQuery) {
   }
 
   if (state.selectedCategory === 'Todos') {
-    CATEGORIES.filter((c) => c !== 'Todos').forEach((cat) => {
+    getCurrentCategories(allDrinks).filter((c) => c !== 'Todos').forEach((cat) => {
       const catDrinks = allDrinks.filter((d) => d.category === cat);
       if (!catDrinks.length) return;
       const headerWrap = document.createElement('div');
@@ -1375,6 +1445,7 @@ function subscribeRealtime() {
       if (!newMesa) return;
 
       const rondaAnterior = state.mesa.ronda ?? 1;
+      const estadoAnterior = state.mesa.estado;
 
       // Recargar mesa completa desde BD para asegurar todos los campos (ronda, etc.)
       const { data: mesaFresh } = await sb.from('mesas').select('*').eq('id', state.mesa.id).single();
@@ -1431,8 +1502,8 @@ function subscribeRealtime() {
 
       if (state.mesa.estado === 'cerrada') {
         showClosedByAdmin();
-      } else if (state.mesa.estado === 'lanzada') {
-        // Cerrar modales que puedan estar abiertos
+      } else if (state.mesa.estado === 'lanzada' && estadoAnterior !== 'lanzada') {
+        // Solo mostrar reparto cuando la mesa ACABA de lanzarse
         document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
         await renderReparto();
         showScreen('reparto');
