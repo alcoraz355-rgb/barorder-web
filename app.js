@@ -332,6 +332,15 @@ function openBrandModal(drink, onSelect) {
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 async function init() {
+  // Bloquear navegación atrás/adelante del navegador: cualquier popstate vuelve a empujar
+  // el estado actual, atrapando al usuario dentro de la app hasta que cierre la pestaña.
+  try {
+    history.pushState({ barorder: true }, '', location.href);
+    window.addEventListener('popstate', () => {
+      history.pushState({ barorder: true }, '', location.href);
+    });
+  } catch (_) {}
+
   const pathParts = window.location.pathname.split('/').filter(Boolean);
   const mesaCodigo = (pathParts[0] || '').toUpperCase();
 
