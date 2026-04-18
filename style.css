@@ -207,8 +207,8 @@ body.amigo-mode .historial-member { background: #4a3020; }
   animation: borderPulse 2.8s ease-in-out infinite;
 }
 @keyframes borderPulse {
-  0%, 100% { border-color: #D4A843; }
-  50%      { border-color: rgba(212, 168, 67, 0.25); }
+  0%, 100% { border-color: #D4A843; color: #fff; }
+  50%      { border-color: rgba(212, 168, 67, 0.25); color: rgba(255, 255, 255, 0.35); }
 }
 .home-btn-pedidos:disabled {
   border-color: transparent;
