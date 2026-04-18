@@ -1231,7 +1231,13 @@ async function handleConfirmar() {
 // ─── Pantalla confirmado ──────────────────────────────────────────────────────
 function renderConfirmed() {
   $('conf-mesa-code').textContent = state.mesa.nombre || state.mesa.codigo;
-  $('conf-user-name').textContent = `Pedido de ${state.nombre}`;
+  const rawBar = (state.mesa.nombre_bar || '').trim();
+  if (rawBar) {
+    const empiezaConBar = /^(bar|restaurante)\b/i.test(rawBar);
+    $('conf-user-name').textContent = (empiezaConBar ? rawBar : `Bar ${rawBar}`).toUpperCase();
+  } else {
+    $('conf-user-name').textContent = `Pedido de ${state.nombre}`;
+  }
   const confRonda = document.getElementById('conf-ronda-badge');
   if (confRonda) confRonda.textContent = `🔄 Ronda ${state.mesa.ronda ?? 1}`;
 
