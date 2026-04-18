@@ -164,8 +164,8 @@ body.amigo-mode .historial-member { background: #4a3020; }
   cursor: pointer;
   background: transparent;
 }
-.home-btn-pedidos { border-color: #27AE60; color: #fff; background: #000; }
-.home-btn-pedidos:disabled { border-color: #80302A; color: #888; background: #000; cursor: not-allowed; opacity: 0.85; }
+.home-btn-pedidos { border-color: #27AE60; color: #fff; background: #000; white-space: nowrap; }
+.home-btn-pedidos:disabled { border-color: transparent; color: #D4A843; background: transparent; cursor: not-allowed; opacity: 1; font-size: 15px; white-space: nowrap; }
 .home-btn-gold { border-color: var(--gold); color: var(--gold); background: #000; }
 .home-btn-salir { border-color: var(--danger); color: var(--danger); background: #000; margin-top: 12px; padding: 10px; font-size: 13px; }
 

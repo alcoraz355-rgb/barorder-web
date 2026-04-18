@@ -592,7 +592,7 @@ function renderHomeScreen() {
       ? (/^(bar|restaurante)\b/i.test(nombreBarPedidos) ? nombreBarPedidos : `Bar ${nombreBarPedidos}`).toUpperCase()
       : '';
     if (!rondaIniciada) {
-      btnPedidos.textContent = '⏳  ESPERANDO APERTURA NUEVA RONDA';
+      btnPedidos.textContent = '⏳  ESPERANDO APERTURA RONDA';
     } else if (tienePedido) {
       btnPedidos.textContent = tituloBar ? `✏️  MODIFICAR PEDIDO — ${tituloBar}` : '✏️  MODIFICAR PEDIDO';
     } else {
