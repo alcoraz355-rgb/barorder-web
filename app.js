@@ -897,6 +897,27 @@ async function showResumenScreen() {
         porRonda[r] = { pedidos: [], bar: null };
       }
     }
+    // Propagar el nombre del bar a rondas vacías: si la ronda N no tiene bar, usar el bar
+    // de la ronda adyacente (anterior primero, después siguiente). La ronda actual hereda
+    // el bar cargado ahora mismo si no tiene.
+    const rondasOrdenadas = Object.keys(porRonda).map(Number).sort((a, b) => a - b);
+    let lastBar = null;
+    rondasOrdenadas.forEach((r) => {
+      if (porRonda[r].bar) lastBar = porRonda[r].bar;
+      else if (lastBar) porRonda[r].bar = lastBar;
+    });
+    // Rellenar hacia atrás: si aún hay rondas sin bar al principio, tomarlo de la siguiente que sí lo tenga
+    let nextBar = null;
+    for (let i = rondasOrdenadas.length - 1; i >= 0; i--) {
+      const r = rondasOrdenadas[i];
+      if (porRonda[r].bar) nextBar = porRonda[r].bar;
+      else if (nextBar) porRonda[r].bar = nextBar;
+    }
+    // Si la ronda actual sigue sin bar, usar el bar cargado ahora
+    if (!porRonda[rondaActual].bar) {
+      const barAhora = (state.mesa.nombre_bar || '').trim();
+      if (barAhora) porRonda[rondaActual].bar = barAhora;
+    }
 
     list.innerHTML = '';
 
