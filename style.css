@@ -223,7 +223,7 @@ body.amigo-mode .historial-member { background: #4a3020; }
   white-space: nowrap;
 }
 .home-btn-gold { border-color: var(--gold); color: var(--gold); background: #000; }
-.home-btn-salir { border-color: var(--danger); color: var(--danger); background: #000; padding: 10px; font-size: 13px; width: 55%; display: block; margin: 0 auto; }
+.home-btn-salir { border: none; color: var(--danger); background: transparent; padding: 8px; font-size: 13px; width: auto; display: inline-block; margin: 0 auto; text-decoration: underline; text-underline-offset: 3px; text-decoration-color: var(--danger); font-weight: 700; }
 
 /* Modales info (catálogo e historial) */
 .info-modal-sheet {
