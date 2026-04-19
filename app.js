@@ -1613,6 +1613,26 @@ function subscribeRealtime() {
     })
     .subscribe();
 
+  // Polling de respaldo cada 12s: recarga mesa (nombre_bar, estado, custom_drinks) y re-renderiza si en home
+  if (state._mesaPollInterval) clearInterval(state._mesaPollInterval);
+  state._mesaPollInterval = setInterval(async () => {
+    try {
+      const { data: mesaFresh } = await sb.from('mesas').select('*').eq('id', state.mesa.id).maybeSingle();
+      if (!mesaFresh) return;
+      const estadoAnt = state.mesa.estado;
+      const nombreBarAnt = state.mesa.nombre_bar;
+      const ordenAnt = JSON.stringify(state.mesa.orden_pagadores || []);
+      state.mesa = { ...state.mesa, ...mesaFresh };
+      if (mesaFresh.custom_drinks) state.customDrinks = mesaFresh.custom_drinks;
+      const cambio = estadoAnt !== mesaFresh.estado
+        || nombreBarAnt !== mesaFresh.nombre_bar
+        || ordenAnt !== JSON.stringify(mesaFresh.orden_pagadores || []);
+      if (cambio && document.querySelector('.screen.active')?.id === 'screen-home') {
+        renderHomeScreen();
+      }
+    } catch (_) {}
+  }, 12000);
+
   // Avisar si el usuario intenta recargar/cerrar con items sin confirmar
   window.removeEventListener('beforeunload', _warnUnsaved);
   window.addEventListener('beforeunload', _warnUnsaved);
