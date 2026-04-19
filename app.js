@@ -494,9 +494,35 @@ async function handleJoin() {
   }
 }
 
+// iOS Safari bloquea audio/TTS sin interacción previa. Al primer tap "desbloqueamos"
+// ambos con un sonido silencioso + utterance vacía — después los speak() futuros funcionan.
+let _audioUnlocked = false;
+function unlockAudio() {
+  if (_audioUnlocked) return;
+  _audioUnlocked = true;
+  try {
+    const beep = document.getElementById('beep-audio');
+    if (beep) {
+      const prevVol = beep.volume;
+      beep.volume = 0;
+      const p = beep.play();
+      if (p && p.then) p.then(() => { beep.pause(); beep.currentTime = 0; beep.volume = prevVol; }).catch(() => { beep.volume = prevVol; });
+      else { beep.pause(); beep.currentTime = 0; beep.volume = prevVol; }
+    }
+  } catch (_) {}
+  try {
+    if ('speechSynthesis' in window) {
+      const u = new SpeechSynthesisUtterance('');
+      u.volume = 0;
+      window.speechSynthesis.speak(u);
+    }
+  } catch (_) {}
+}
+document.addEventListener('click', unlockAudio, { once: false, capture: true });
+document.addEventListener('touchstart', unlockAudio, { once: false, capture: true });
+
 // Anuncio de voz cuando empieza una ronda nueva.
-// Lanza beep + TTS con mensaje. Silencioso si el navegador no soporta speechSynthesis
-// o si el usuario aún no ha interactuado con la página.
+// Lanza beep + TTS. Silencioso si el navegador no lo soporta o si no se ha desbloqueado aún.
 function avisarNuevaRonda(numRonda) {
   try {
     const beep = document.getElementById('beep-audio');
@@ -504,7 +530,6 @@ function avisarNuevaRonda(numRonda) {
   } catch (_) {}
   try {
     if ('speechSynthesis' in window) {
-      // Pequeño delay para que el beep no pise la voz
       setTimeout(() => {
         try {
           window.speechSynthesis.cancel();
