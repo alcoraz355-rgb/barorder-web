@@ -494,6 +494,28 @@ async function handleJoin() {
   }
 }
 
+// Modal de confirmación para salir del grupo (alternativa fiable a confirm())
+function confirmarSalir() {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px';
+    overlay.innerHTML = `
+      <div style="background:#1A1A1A;border:1px solid #333;border-radius:16px;padding:22px;max-width:340px;width:100%;text-align:center">
+        <div style="font-size:38px;margin-bottom:8px">🚪</div>
+        <div style="color:#fff;font-size:17px;font-weight:800;margin-bottom:8px">¿Salir del grupo?</div>
+        <div style="color:#999;font-size:14px;margin-bottom:18px;line-height:1.4">Tus pedidos quedan registrados.</div>
+        <div style="display:flex;gap:10px">
+          <button id="salir-cancel" style="flex:1;padding:14px;border-radius:10px;border:1px solid #444;background:#000;color:#fff;font-size:15px;font-weight:700;cursor:pointer">Cancelar</button>
+          <button id="salir-ok" style="flex:1;padding:14px;border-radius:10px;border:1px solid #E05555;background:#E05555;color:#fff;font-size:15px;font-weight:800;cursor:pointer">Salir</button>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    overlay.querySelector('#salir-cancel').onclick = () => { overlay.remove(); resolve(false); };
+    overlay.querySelector('#salir-ok').onclick = () => { overlay.remove(); resolve(true); };
+    overlay.onclick = (e) => { if (e.target === overlay) { overlay.remove(); resolve(false); } };
+  });
+}
+
 // ─── Pantalla Home (amigo) ────────────────────────────────────────────────────
 function renderHomeScreen() {
   const mesa = state.mesa;
@@ -573,7 +595,8 @@ function renderHomeScreen() {
   const btnSalir = $('btn-home-salir');
   if (btnSalir) {
     btnSalir.onclick = async () => {
-      if (!confirm('¿Seguro que quieres salir del grupo? Tus pedidos quedan registrados.')) return;
+      const ok = await confirmarSalir();
+      if (!ok) return;
       stopPollingEliminacion();
       if (state.channel) { state.channel.unsubscribe(); state.channel = null; }
       if (state.chatChannel) { state.chatChannel.unsubscribe(); state.chatChannel = null; }
