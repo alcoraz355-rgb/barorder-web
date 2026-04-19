@@ -494,57 +494,6 @@ async function handleJoin() {
   }
 }
 
-// iOS Safari bloquea audio/TTS sin interacción previa. Al primer tap "desbloqueamos"
-// ambos con un sonido silencioso + utterance vacía — después los speak() futuros funcionan.
-let _audioUnlocked = false;
-function unlockAudio() {
-  if (_audioUnlocked) return;
-  _audioUnlocked = true;
-  try {
-    const beep = document.getElementById('beep-audio');
-    if (beep) {
-      const prevVol = beep.volume;
-      beep.volume = 0;
-      const p = beep.play();
-      if (p && p.then) p.then(() => { beep.pause(); beep.currentTime = 0; beep.volume = prevVol; }).catch(() => { beep.volume = prevVol; });
-      else { beep.pause(); beep.currentTime = 0; beep.volume = prevVol; }
-    }
-  } catch (_) {}
-  try {
-    if ('speechSynthesis' in window) {
-      const u = new SpeechSynthesisUtterance('');
-      u.volume = 0;
-      window.speechSynthesis.speak(u);
-    }
-  } catch (_) {}
-}
-document.addEventListener('click', unlockAudio, { once: false, capture: true });
-document.addEventListener('touchstart', unlockAudio, { once: false, capture: true });
-
-// Anuncio de voz cuando empieza una ronda nueva.
-// Lanza beep + TTS. Silencioso si el navegador no lo soporta o si no se ha desbloqueado aún.
-function avisarNuevaRonda(numRonda) {
-  try {
-    const beep = document.getElementById('beep-audio');
-    if (beep) { try { beep.currentTime = 0; beep.play().catch(() => {}); } catch (_) {} }
-  } catch (_) {}
-  try {
-    if ('speechSynthesis' in window) {
-      setTimeout(() => {
-        try {
-          window.speechSynthesis.cancel();
-          const u = new SpeechSynthesisUtterance(`Nueva ronda ${numRonda}. Ya puedes pedir.`);
-          u.lang = 'es-ES';
-          u.rate = 1;
-          u.pitch = 1;
-          u.volume = 1;
-          window.speechSynthesis.speak(u);
-        } catch (_) {}
-      }, 250);
-    }
-  } catch (_) {}
-}
-
 // Modal de confirmación para salir del grupo (alternativa fiable a confirm())
 function confirmarSalir() {
   return new Promise((resolve) => {
@@ -1584,20 +1533,11 @@ function subscribeRealtime() {
 
       const rondaAnterior = state.mesa.ronda ?? 1;
       const estadoAnterior = state.mesa.estado;
-      const ordenAnteriorLen = Array.isArray(state.mesa.orden_pagadores) ? state.mesa.orden_pagadores.length : 0;
-      const rondaIniciadaAntes = estadoAnterior === 'abierta' && ordenAnteriorLen > 0;
 
       // Recargar mesa completa desde BD para asegurar todos los campos (ronda, etc.)
       const { data: mesaFresh } = await sb.from('mesas').select('*').eq('id', state.mesa.id).single();
       if (mesaFresh) state.mesa = { ...state.mesa, ...mesaFresh };
       else state.mesa = { ...state.mesa, ...newMesa };
-
-      // Anuncio de voz cuando se acaba de iniciar una ronda (abierta + orden_pagadores llenado)
-      const ordenNuevoLen = Array.isArray(state.mesa.orden_pagadores) ? state.mesa.orden_pagadores.length : 0;
-      const rondaIniciadaAhora = state.mesa.estado === 'abierta' && ordenNuevoLen > 0;
-      if (rondaIniciadaAhora && !rondaIniciadaAntes) {
-        avisarNuevaRonda(state.mesa.ronda ?? 1);
-      }
 
       // Si cambió la ronda, resetear pedido local (es una nueva ronda)
       if ((state.mesa.ronda ?? 1) !== rondaAnterior) {
