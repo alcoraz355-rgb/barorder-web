@@ -359,6 +359,7 @@ async function init() {
     state.mesa = mesa;
     state.customDrinks = mesa.custom_drinks || [];
     state.prices = mesa.custom_prices || {};
+    document.body.classList.toggle('precios-ocultos', !!mesa.precios_ocultos);
   } catch {
     showScreen('closed');
     $('screen-closed').querySelector('.closed-title').textContent = 'Mesa no encontrada';
@@ -951,7 +952,7 @@ async function showResumenScreen() {
     const totalBox = document.createElement('div');
     totalBox.style.cssText = 'display:flex;gap:8px;margin-bottom:14px;';
     totalBox.innerHTML = `
-      <div style="flex:1;background:#1A1200;border:1px solid var(--gold);border-radius:12px;padding:12px;text-align:center">
+      <div class="precio-total" style="flex:1;background:#1A1200;border:1px solid var(--gold);border-radius:12px;padding:12px;text-align:center">
         <div style="color:#999;font-size:10px;font-weight:700;letter-spacing:1px;margin-bottom:4px">TOTAL CONSUMIDO</div>
         <div style="color:var(--gold);font-size:22px;font-weight:900">${consumido.toFixed(2)} €</div>
       </div>
@@ -1004,11 +1005,12 @@ async function showResumenScreen() {
             <span style="font-size:22px">${p.drink_emoji}</span>
             <span style="flex:1;font-size:17px">${p.drink_name}${p.marca ? ' · ' + p.marca : ''}</span>
             <span style="color:#999;font-size:16px">×${p.cantidad}</span>
-            <span style="color:var(--gold);margin-left:8px;font-size:16px;font-weight:700">${precio.toFixed(2)} €</span>
+            <span class="precio-linea" style="color:var(--gold);margin-left:8px;font-size:16px;font-weight:700">${precio.toFixed(2)} €</span>
           `;
           list.appendChild(row);
         });
         const totalRondaEl = document.createElement('div');
+        totalRondaEl.className = 'precio-subtotal';
         totalRondaEl.style.cssText = 'text-align:right;color:#666;font-size:13px;margin-top:4px;padding-right:2px;';
         totalRondaEl.textContent = `Subtotal ronda: ${totalRonda.toFixed(2)} €`;
         list.appendChild(totalRondaEl);
@@ -1622,6 +1624,8 @@ function subscribeRealtime() {
       if (mesaFresh) state.mesa = { ...state.mesa, ...mesaFresh };
       else state.mesa = { ...state.mesa, ...newMesa };
 
+      document.body.classList.toggle('precios-ocultos', !!state.mesa?.precios_ocultos);
+
       // Cualquier cambio en la mesa: si estás en home, re-renderiza para reflejar nombre_bar, estado, ronda, etc.
       if (document.querySelector('.screen.active')?.id === 'screen-home') {
         renderHomeScreen();
@@ -1715,10 +1719,15 @@ function subscribeRealtime() {
       if (!mesaFresh) return;
       state.mesa = { ...state.mesa, ...mesaFresh };
       if (mesaFresh.custom_drinks) state.customDrinks = mesaFresh.custom_drinks;
+      aplicarPreciosOcultos();
       if (document.querySelector('.screen.active')?.id === 'screen-home') {
         renderHomeScreen();
       }
     } catch (_) {}
+  }
+
+  function aplicarPreciosOcultos() {
+    document.body.classList.toggle('precios-ocultos', !!state.mesa?.precios_ocultos);
   }
 
   // Polling de respaldo cada 5s

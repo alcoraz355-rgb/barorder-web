@@ -147,6 +147,16 @@ body.amigo-mode .historial-member { background: #4a3020; }
 }
 .home-ronda-text { color: var(--gold); font-size: 15px; font-weight: 700; letter-spacing: 0.5px; }
 .home-ronda-num  { color: var(--gold); font-size: 22px; font-weight: 900; }
+/* Modo "Precios ocultos": el admin decide que los amigos no vean ningún precio.
+   Ocultamos todas las zonas de precio (badges, totales, subtotales). */
+body.precios-ocultos .price-badge,
+body.precios-ocultos .catalogo-item-price,
+body.precios-ocultos .precio-subtotal,
+body.precios-ocultos .precio-linea,
+body.precios-ocultos .precio-total {
+  display: none !important;
+}
+
 /* Parpadeo solo cuando la ronda está activa ("Se está pidiendo en la RONDA N") */
 @keyframes rondaBlink {
   0%, 100% { opacity: 1; }
