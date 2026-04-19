@@ -890,6 +890,13 @@ async function showResumenScreen() {
         bar: (state.mesa.nombre_bar || '').trim() || (porRonda[rondaActual]?.bar || null),
       };
     }
+    // Añadir rondas vacías desde 1 hasta rondaActual (aunque el amigo no haya pedido)
+    // Posible caso: el amigo no pidió en esa ronda pero pudo haber pagado — debe aparecer igual.
+    for (let r = 1; r <= rondaActual; r++) {
+      if (!porRonda[r]) {
+        porRonda[r] = { pedidos: [], bar: null };
+      }
+    }
 
     list.innerHTML = '';
 
@@ -935,24 +942,30 @@ async function showResumenScreen() {
       list.appendChild(header);
 
       let totalRonda = 0;
-      rPeds.forEach((p) => {
-        const precio = getPrice(p.drink_id) * p.cantidad;
-        totalRonda += precio;
-        const row = document.createElement('div');
-        row.className = 'historial-drink-row';
-        row.innerHTML = `
-          <span style="font-size:22px">${p.drink_emoji}</span>
-          <span style="flex:1;font-size:17px">${p.drink_name}${p.marca ? ' · ' + p.marca : ''}</span>
-          <span style="color:#999;font-size:16px">×${p.cantidad}</span>
-          <span style="color:var(--gold);margin-left:8px;font-size:16px;font-weight:700">${precio.toFixed(2)} €</span>
-        `;
-        list.appendChild(row);
-      });
-
-      const totalRondaEl = document.createElement('div');
-      totalRondaEl.style.cssText = 'text-align:right;color:#666;font-size:13px;margin-top:4px;padding-right:2px;';
-      totalRondaEl.textContent = `Subtotal ronda: ${totalRonda.toFixed(2)} €`;
-      list.appendChild(totalRondaEl);
+      if (rPeds.length === 0) {
+        const empty = document.createElement('div');
+        empty.style.cssText = 'color:#777;font-style:italic;font-size:14px;padding:6px 2px;';
+        empty.textContent = '— No pediste nada en esta ronda —';
+        list.appendChild(empty);
+      } else {
+        rPeds.forEach((p) => {
+          const precio = getPrice(p.drink_id) * p.cantidad;
+          totalRonda += precio;
+          const row = document.createElement('div');
+          row.className = 'historial-drink-row';
+          row.innerHTML = `
+            <span style="font-size:22px">${p.drink_emoji}</span>
+            <span style="flex:1;font-size:17px">${p.drink_name}${p.marca ? ' · ' + p.marca : ''}</span>
+            <span style="color:#999;font-size:16px">×${p.cantidad}</span>
+            <span style="color:var(--gold);margin-left:8px;font-size:16px;font-weight:700">${precio.toFixed(2)} €</span>
+          `;
+          list.appendChild(row);
+        });
+        const totalRondaEl = document.createElement('div');
+        totalRondaEl.style.cssText = 'text-align:right;color:#666;font-size:13px;margin-top:4px;padding-right:2px;';
+        totalRondaEl.textContent = `Subtotal ronda: ${totalRonda.toFixed(2)} €`;
+        list.appendChild(totalRondaEl);
+      }
     });
 
     const note = document.createElement('div');
