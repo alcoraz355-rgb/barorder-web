@@ -1556,9 +1556,14 @@ function subscribeRealtime() {
       const estadoAnterior = state.mesa.estado;
 
       // Recargar mesa completa desde BD para asegurar todos los campos (ronda, etc.)
-      const { data: mesaFresh } = await sb.from('mesas').select('*').eq('id', state.mesa.id).single();
+      const { data: mesaFresh } = await sb.from('mesas').select('*').eq('id', state.mesa.id).maybeSingle();
       if (mesaFresh) state.mesa = { ...state.mesa, ...mesaFresh };
       else state.mesa = { ...state.mesa, ...newMesa };
+
+      // Cualquier cambio en la mesa: si estás en home, re-renderiza para reflejar nombre_bar, estado, ronda, etc.
+      if (document.querySelector('.screen.active')?.id === 'screen-home') {
+        renderHomeScreen();
+      }
 
       // Si cambió la ronda, resetear pedido local (es una nueva ronda)
       if ((state.mesa.ronda ?? 1) !== rondaAnterior) {
