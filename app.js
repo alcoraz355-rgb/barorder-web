@@ -981,7 +981,7 @@ async function showResumenScreen() {
           const d = new Date(ts);
           const h = d.getHours().toString().padStart(2, '0');
           const m = d.getMinutes().toString().padStart(2, '0');
-          horaTag = ` <span style="color:#27AE60;font-family:Georgia,\\'Times New Roman\\',serif;font-style:italic;font-weight:700;font-size:17px">${h}:${m}</span>`;
+          horaTag = ` <span style="color:#27AE60;font-family:Georgia,\\'Times New Roman\\',serif;font-style:italic;font-weight:700;font-size:17px">— ${h}:${m}</span>`;
         } catch (_) {}
       }
       header.innerHTML = `<span style="color:#9090FF;font-size:19px;font-weight:900">Ronda Nº ${rondaNum}</span>${barTag}${horaTag}${modTag}
