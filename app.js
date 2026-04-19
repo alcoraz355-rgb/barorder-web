@@ -641,6 +641,7 @@ function renderHomeScreen() {
       : '';
     const mainEl = $('btn-home-pedidos-label-main');
     const barEl = $('btn-home-pedidos-label-bar');
+    const clickEl = $('btn-home-pedidos-click');
     let mainText, barText = '';
     if (!rondaIniciada) mainText = '⏳  ESPERANDO APERTURA RONDA';
     else if (tienePedido) { mainText = '✏️  MODIFICAR PEDIDO'; barText = tituloBar; }
@@ -650,6 +651,8 @@ function renderHomeScreen() {
       barEl.textContent = barText;
       barEl.style.display = barText ? 'block' : 'none';
     }
+    // El "CLICK" solo se muestra cuando el botón es pulsable
+    if (clickEl) clickEl.style.display = rondaIniciada ? 'block' : 'none';
     btnPedidos.disabled = !rondaIniciada;
     btnPedidos.onclick = async () => {
       // Cargar catálogo activo más reciente antes de abrir la pantalla de pedido
