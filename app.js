@@ -639,13 +639,17 @@ function renderHomeScreen() {
     const tituloBar = nombreBarPedidos
       ? (/^(bar|restaurante)\b/i.test(nombreBarPedidos) ? nombreBarPedidos : `Bar ${nombreBarPedidos}`).toUpperCase()
       : '';
-    const labelEl = $('btn-home-pedidos-label');
-    let labelText;
-    if (!rondaIniciada) labelText = '⏳  ESPERANDO APERTURA RONDA';
-    else if (tienePedido) labelText = tituloBar ? `✏️  MODIFICAR PEDIDO — ${tituloBar}` : '✏️  MODIFICAR PEDIDO';
-    else labelText = tituloBar ? `🍺  NUEVO PEDIDO — ${tituloBar}` : '🍺  NUEVO PEDIDO';
-    if (labelEl) labelEl.textContent = labelText;
-    else btnPedidos.textContent = labelText;
+    const mainEl = $('btn-home-pedidos-label-main');
+    const barEl = $('btn-home-pedidos-label-bar');
+    let mainText, barText = '';
+    if (!rondaIniciada) mainText = '⏳  ESPERANDO APERTURA RONDA';
+    else if (tienePedido) { mainText = '✏️  MODIFICAR PEDIDO'; barText = tituloBar; }
+    else { mainText = '🍺  NUEVO PEDIDO'; barText = tituloBar; }
+    if (mainEl) mainEl.textContent = mainText;
+    if (barEl) {
+      barEl.textContent = barText;
+      barEl.style.display = barText ? 'block' : 'none';
+    }
     btnPedidos.disabled = !rondaIniciada;
     btnPedidos.onclick = async () => {
       // Cargar catálogo activo más reciente antes de abrir la pantalla de pedido
