@@ -879,24 +879,40 @@ async function showResumenScreen() {
     // Construir mapa por ronda: historial local + ronda actual
     // Cada entrada: { pedidos, bar }
     const porRonda = {};
-    historialLocal.forEach(({ rondaNum, pedidos, bar }) => {
-      porRonda[rondaNum] = { pedidos, bar: bar || null };
+    historialLocal.forEach(({ rondaNum, pedidos, bar, ts }) => {
+      porRonda[rondaNum] = { pedidos, bar: bar || null, ts: ts || null };
     });
     // La ronda actual de BD sobreescribe si ya existia guardada
     const rondaActual = state.mesa.ronda ?? 1;
     if (pedidosActuales && pedidosActuales.length) {
+      // Usar el updated_at del primer pedido confirmado (el más antiguo) como hora de la ronda
+      const primerTs = pedidosActuales
+        .map((p) => p.updated_at)
+        .filter(Boolean)
+        .sort()[0] || null;
       porRonda[rondaActual] = {
         pedidos: pedidosActuales,
         bar: (state.mesa.nombre_bar || '').trim() || (porRonda[rondaActual]?.bar || null),
+        ts: porRonda[rondaActual]?.ts || primerTs,
       };
     }
     // Añadir rondas vacías desde 1 hasta rondaActual (aunque el amigo no haya pedido)
     // Posible caso: el amigo no pidió en esa ronda pero pudo haber pagado — debe aparecer igual.
     for (let r = 1; r <= rondaActual; r++) {
       if (!porRonda[r]) {
-        porRonda[r] = { pedidos: [], bar: null };
+        porRonda[r] = { pedidos: [], bar: null, ts: null };
       }
     }
+    // La hora mostrada por ronda es SIEMPRE la hora en que el admin lanzó la orden al camarero
+    // (ignoramos las horas de pedido individuales del amigo).
+    let launchTsMap = {};
+    try {
+      launchTsMap = JSON.parse(localStorage.getItem(`@barorder_launch_ts_${state.mesa.id}_${state.miembro?.id}`) || '{}');
+    } catch (_) {}
+    Object.keys(porRonda).forEach((r) => {
+      porRonda[r].ts = launchTsMap[r] || null;
+    });
+
     // Propagar el nombre del bar a rondas vacías: si la ronda N no tiene bar, usar el bar
     // de la ronda adyacente (anterior primero, después siguiente). La ronda actual hereda
     // el bar cargado ahora mismo si no tiene.
@@ -950,6 +966,7 @@ async function showResumenScreen() {
     Object.entries(porRonda).sort(([a], [b]) => Number(a) - Number(b)).forEach(([rondaNum, entry]) => {
       const rPeds = entry.pedidos || [];
       const bar = entry.bar || null;
+      const ts = entry.ts || null;
       const header = document.createElement('div');
       header.style.cssText = 'display:flex;align-items:center;gap:8px;margin:12px 0 6px;flex-wrap:wrap';
       let modsKey = 'barorder_ronda_modificada_' + state.mesa.id;
@@ -958,7 +975,16 @@ async function showResumenScreen() {
       const barTag = bar
         ? ` <span style="color:#27AE60;font-family:Georgia,\\'Times New Roman\\',serif;font-style:italic;font-weight:700;font-size:17px">— ${bar}</span>`
         : '';
-      header.innerHTML = `<span style="color:#9090FF;font-size:19px;font-weight:900">Ronda Nº ${rondaNum}</span>${barTag}${modTag}
+      let horaTag = '';
+      if (ts) {
+        try {
+          const d = new Date(ts);
+          const h = d.getHours().toString().padStart(2, '0');
+          const m = d.getMinutes().toString().padStart(2, '0');
+          horaTag = ` <span style="color:#999;font-size:13px;font-weight:600">${h}:${m}</span>`;
+        } catch (_) {}
+      }
+      header.innerHTML = `<span style="color:#9090FF;font-size:19px;font-weight:900">Ronda Nº ${rondaNum}</span>${horaTag}${barTag}${modTag}
         <div style="flex:1;height:1px;background:#9090FF;opacity:0.4"></div>`;
       list.appendChild(header);
 
@@ -1424,7 +1450,9 @@ function guardarHistorialRonda(pedidos, rondaNum) {
   try { historial = JSON.parse(localStorage.getItem(_historialKey()) || '[]'); } catch {}
   const idx = historial.findIndex((r) => r.rondaNum === rondaNum);
   const bar = (state.mesa.nombre_bar || '').trim() || null;
-  const entry = { rondaNum, pedidos, bar };
+  // Conservar la hora original si la ronda ya estaba guardada; si no, usar ahora.
+  const tsPrev = idx >= 0 ? historial[idx].ts : null;
+  const entry = { rondaNum, pedidos, bar, ts: tsPrev || new Date().toISOString() };
   if (idx >= 0) historial[idx] = entry;
   else historial.push(entry);
   localStorage.setItem(_historialKey(), JSON.stringify(historial));
@@ -1650,6 +1678,16 @@ function subscribeRealtime() {
       if (state.mesa.estado === 'cerrada') {
         showClosedByAdmin();
       } else if (state.mesa.estado === 'lanzada' && estadoAnterior !== 'lanzada') {
+        // Guardar la hora de lanzamiento de esta ronda — servirá en el historial
+        // para rondas en las que el amigo no pidió nada
+        try {
+          const key = `@barorder_launch_ts_${state.mesa.id}_${state.miembro?.id}`;
+          let map = {};
+          try { map = JSON.parse(localStorage.getItem(key) || '{}'); } catch (_) {}
+          const r = state.mesa.ronda ?? 1;
+          if (!map[r]) map[r] = new Date().toISOString();
+          localStorage.setItem(key, JSON.stringify(map));
+        } catch (_) {}
         // Orden lanzada: cerrar modales y mostrar home con el aviso "orden entregada al camarero"
         document.querySelectorAll('.modal-overlay').forEach(m => m.style.display = 'none');
         renderHomeScreen();
