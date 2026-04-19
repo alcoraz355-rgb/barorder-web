@@ -642,10 +642,12 @@ function renderHomeScreen() {
     const mainEl = $('btn-home-pedidos-label-main');
     const barEl = $('btn-home-pedidos-label-bar');
     const clickEl = $('btn-home-pedidos-click');
-    let mainText, barText = '';
+    let mainText;
+    // El nombre del bar se muestra SIEMPRE que esté cargado, independientemente de si la ronda está abierta o esperando
+    const barText = tituloBar;
     if (!rondaIniciada) mainText = '⏳  ESPERANDO APERTURA RONDA';
-    else if (tienePedido) { mainText = '✏️  MODIFICAR PEDIDO'; barText = tituloBar; }
-    else { mainText = '🍺  NUEVO PEDIDO'; barText = tituloBar; }
+    else if (tienePedido) mainText = '✏️  MODIFICAR PEDIDO';
+    else mainText = '🍺  NUEVO PEDIDO';
     if (mainEl) mainEl.textContent = mainText;
     if (barEl) {
       barEl.textContent = barText;
