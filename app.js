@@ -981,10 +981,10 @@ async function showResumenScreen() {
           const d = new Date(ts);
           const h = d.getHours().toString().padStart(2, '0');
           const m = d.getMinutes().toString().padStart(2, '0');
-          horaTag = ` <span style="color:#999;font-size:13px;font-weight:600">${h}:${m}</span>`;
+          horaTag = ` <span style="color:#27AE60;font-family:Georgia,\\'Times New Roman\\',serif;font-style:italic;font-weight:700;font-size:17px">${h}:${m}</span>`;
         } catch (_) {}
       }
-      header.innerHTML = `<span style="color:#9090FF;font-size:19px;font-weight:900">Ronda Nº ${rondaNum}</span>${horaTag}${barTag}${modTag}
+      header.innerHTML = `<span style="color:#9090FF;font-size:19px;font-weight:900">Ronda Nº ${rondaNum}</span>${barTag}${horaTag}${modTag}
         <div style="flex:1;height:1px;background:#9090FF;opacity:0.4"></div>`;
       list.appendChild(header);
 
