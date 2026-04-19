@@ -1500,6 +1500,22 @@ function subscribeRealtime() {
   if (state.channel) return;
 
   state.channel = sb.channel(`web_mesa_${state.mesa.id}`, { config: { broadcast: { self: false, ack: false } } })
+    .on('broadcast', { event: 'bar_cambiado' }, async (msg) => {
+      // Actualización instantánea del nombre del bar sin esperar postgres_changes
+      try {
+        if (msg?.payload && 'nombre_bar' in msg.payload) {
+          state.mesa.nombre_bar = msg.payload.nombre_bar;
+        }
+        // Recargar catálogo fresco por si también cambió
+        const { data: mesaFresh } = await sb.from('mesas').select('custom_drinks, nombre_bar').eq('id', state.mesa.id).maybeSingle();
+        if (mesaFresh) {
+          if (Array.isArray(mesaFresh.custom_drinks)) state.customDrinks = mesaFresh.custom_drinks;
+          state.mesa.nombre_bar = mesaFresh.nombre_bar;
+        }
+        if (document.querySelector('.screen.active')?.id === 'screen-home') renderHomeScreen();
+        else if (document.querySelector('.screen.active')?.id === 'screen-order') renderDrinks();
+      } catch (_) {}
+    })
     .on('broadcast', { event: 'kick' }, (payload) => {
       if (payload.payload?.miembroId === state.miembro?.id) _mostrarDespedida();
     })
