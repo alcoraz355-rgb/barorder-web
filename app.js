@@ -494,6 +494,32 @@ async function handleJoin() {
   }
 }
 
+// Anuncio de voz cuando empieza una ronda nueva.
+// Lanza beep + TTS con mensaje. Silencioso si el navegador no soporta speechSynthesis
+// o si el usuario aún no ha interactuado con la página.
+function avisarNuevaRonda(numRonda) {
+  try {
+    const beep = document.getElementById('beep-audio');
+    if (beep) { try { beep.currentTime = 0; beep.play().catch(() => {}); } catch (_) {} }
+  } catch (_) {}
+  try {
+    if ('speechSynthesis' in window) {
+      // Pequeño delay para que el beep no pise la voz
+      setTimeout(() => {
+        try {
+          window.speechSynthesis.cancel();
+          const u = new SpeechSynthesisUtterance(`Nueva ronda ${numRonda}. Ya puedes pedir.`);
+          u.lang = 'es-ES';
+          u.rate = 1;
+          u.pitch = 1;
+          u.volume = 1;
+          window.speechSynthesis.speak(u);
+        } catch (_) {}
+      }, 250);
+    }
+  } catch (_) {}
+}
+
 // Modal de confirmación para salir del grupo (alternativa fiable a confirm())
 function confirmarSalir() {
   return new Promise((resolve) => {
@@ -1533,11 +1559,20 @@ function subscribeRealtime() {
 
       const rondaAnterior = state.mesa.ronda ?? 1;
       const estadoAnterior = state.mesa.estado;
+      const ordenAnteriorLen = Array.isArray(state.mesa.orden_pagadores) ? state.mesa.orden_pagadores.length : 0;
+      const rondaIniciadaAntes = estadoAnterior === 'abierta' && ordenAnteriorLen > 0;
 
       // Recargar mesa completa desde BD para asegurar todos los campos (ronda, etc.)
       const { data: mesaFresh } = await sb.from('mesas').select('*').eq('id', state.mesa.id).single();
       if (mesaFresh) state.mesa = { ...state.mesa, ...mesaFresh };
       else state.mesa = { ...state.mesa, ...newMesa };
+
+      // Anuncio de voz cuando se acaba de iniciar una ronda (abierta + orden_pagadores llenado)
+      const ordenNuevoLen = Array.isArray(state.mesa.orden_pagadores) ? state.mesa.orden_pagadores.length : 0;
+      const rondaIniciadaAhora = state.mesa.estado === 'abierta' && ordenNuevoLen > 0;
+      if (rondaIniciadaAhora && !rondaIniciadaAntes) {
+        avisarNuevaRonda(state.mesa.ronda ?? 1);
+      }
 
       // Si cambió la ronda, resetear pedido local (es una nueva ronda)
       if ((state.mesa.ronda ?? 1) !== rondaAnterior) {
