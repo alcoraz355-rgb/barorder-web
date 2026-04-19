@@ -212,9 +212,9 @@ function showScreen(name) {
   const voiceBubble = $('voice-bubble');
   if (voiceBubble) voiceBubble.style.display = 'none';
   if (name !== 'order' && _voz.active) { _voz.active = false; try { _voz.recorder?.stop(); } catch(_){} _voz.stream?.getTracks().forEach(t=>t.stop()); }
-  // Chat global: ocultar en order (tiene su propio botón integrado)
+  // Chat global: ocultar en order (botón integrado) y en home (botón inline "Chat 💬")
   const chatFab = $('chat-fab');
-  if (chatFab) chatFab.style.display = (name === 'order') ? 'none' : '';
+  if (chatFab) chatFab.style.display = (name === 'order' || name === 'home') ? 'none' : '';
 }
 
 function showClosedByAdmin() {
@@ -1686,9 +1686,11 @@ async function initChat() {
   const hayNuevos = state.chatMensajes.some((m) => m.miembro_id !== state.miembro.id && new Date(m.created_at) > lastReadTime);
   setUnread(hayNuevos);
 
-  // Mostrar FAB
+  // Mostrar FAB (y su equivalente inline en home)
   const fab = $('chat-fab');
   if (fab) { fab.style.display = 'flex'; fab.onclick = openChat; }
+  const btnHomeChat = $('btn-home-chat');
+  if (btnHomeChat) btnHomeChat.onclick = openChat;
 
   // Canal realtime — broadcast para velocidad máxima + postgres_changes como respaldo
   if (state.chatChannel) state.chatChannel.unsubscribe();
